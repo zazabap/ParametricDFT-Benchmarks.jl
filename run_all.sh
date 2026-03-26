@@ -3,19 +3,19 @@
 # Run benchmark suite: smoke → moderate → heavy, across all datasets
 # ============================================================================
 # Usage:
-#   CUDA_VISIBLE_DEVICES=0 nohup bash examples/benchmark/run_all.sh > benchmark_run.log 2>&1 &
-#   CUDA_VISIBLE_DEVICES=0 nohup bash examples/benchmark/run_all.sh moderate > benchmark_run.log 2>&1 &
+#   CUDA_VISIBLE_DEVICES=0 nohup bash run_all.sh > benchmark_run.log 2>&1 &
+#   CUDA_VISIBLE_DEVICES=0 nohup bash run_all.sh moderate > benchmark_run.log 2>&1 &
 #
 # Optional argument: starting preset (default: smoke). Runs from that preset onward.
 #   e.g., "moderate" runs moderate → heavy, skipping smoke.
 #
-# Results are preserved under examples/benchmark/results/<preset>/<dataset>/
+# Results are preserved under results/<preset>/<dataset>/
 # after each dataset completes.
 #
 # Datasets:
 #   - quickdraw: auto-downloaded on first run
-#   - div2k: requires manual download to examples/benchmark/data/DIV2K_train_HR/
-#   - clic: requires manual download to examples/benchmark/data/professional_train_2020/ etc.
+#   - div2k: requires manual download to data/DIV2K_train_HR/
+#   - clic: requires manual download to data/professional_train_2020/ etc.
 #
 # Missing datasets are skipped with a warning.
 # ============================================================================
@@ -23,8 +23,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-cd "$REPO_DIR"
+cd "$SCRIPT_DIR"
 
 RESULTS_BASE="$SCRIPT_DIR/results"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
@@ -76,7 +75,7 @@ for PRESET in "${PRESETS[@]}"; do
         rm -rf "$SCRIPT_DIR/results/$DATASET"
 
         # Run benchmark — if it fails (e.g., missing data), warn and continue
-        if julia --project=examples/benchmark "examples/benchmark/$SCRIPT" "$PRESET" 2>&1 | tee "$RESULTS_BASE/${PRESET}_${DATASET}_${TIMESTAMP}.log"; then
+        if julia --project=. "$SCRIPT" "$PRESET" 2>&1 | tee "$RESULTS_BASE/${PRESET}_${DATASET}_${TIMESTAMP}.log"; then
             # Preserve results under preset-specific directory
             PRESET_DIR="$RESULTS_BASE/$PRESET"
             mkdir -p "$PRESET_DIR"
