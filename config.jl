@@ -25,6 +25,17 @@ const TRAINING_PRESETS = Dict(
         device = :gpu,
         batch_size = 16,
     ),
+    :light => (
+        epochs = 5,
+        steps_per_image = 10,
+        n_train = 10,
+        n_test = 20,
+        patience = 5,
+        optimizer = :adam,
+        validation_split = 0.2,
+        device = :gpu,
+        batch_size = 8,
+    ),
     :moderate => (
         epochs = 10,
         steps_per_image = 15,
@@ -57,6 +68,8 @@ const DATASET_CONFIGS = Dict(
     :quickdraw => (m = 5, n = 5, img_size = 32),
     :div2k     => (m = 10, n = 10, img_size = 1024),
     :clic      => (m = 9, n = 9, img_size = 512),
+    :div2k_7q  => (m = 7, n = 7, img_size = 128),
+    :div2k_8q  => (m = 8, n = 8, img_size = 256),
 )
 
 # ============================================================================
