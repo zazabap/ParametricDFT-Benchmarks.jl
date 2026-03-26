@@ -4,8 +4,8 @@
 # Train all 4 basis types on Quick Draw and evaluate compression quality.
 #
 # Usage:
-#   julia --project=examples/benchmark examples/benchmark/run_quickdraw.jl moderate
-#   julia --project=examples/benchmark examples/benchmark/run_quickdraw.jl heavy
+#   julia --project=. run_quickdraw.jl moderate
+#   julia --project=. run_quickdraw.jl heavy
 # ============================================================================
 
 include("config.jl")

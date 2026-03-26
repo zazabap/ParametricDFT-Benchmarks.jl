@@ -4,8 +4,8 @@
 # Train all 4 basis types on CLIC and evaluate compression quality.
 #
 # Usage:
-#   julia --project=examples/benchmark examples/benchmark/run_clic.jl moderate
-#   julia --project=examples/benchmark examples/benchmark/run_clic.jl heavy
+#   julia --project=. run_clic.jl moderate
+#   julia --project=. run_clic.jl heavy
 # ============================================================================
 
 include("config.jl")

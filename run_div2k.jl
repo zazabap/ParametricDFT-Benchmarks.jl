@@ -4,8 +4,8 @@
 # Train all 4 basis types on DIV2K and evaluate compression quality.
 #
 # Usage:
-#   julia --project=examples/benchmark examples/benchmark/run_div2k.jl moderate
-#   julia --project=examples/benchmark examples/benchmark/run_div2k.jl heavy
+#   julia --project=. run_div2k.jl moderate
+#   julia --project=. run_div2k.jl heavy
 # ============================================================================
 
 include("config.jl")

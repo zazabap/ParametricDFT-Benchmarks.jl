@@ -9,7 +9,7 @@
 # 5. Timing table (CSV)
 #
 # Usage:
-#   julia --project=examples/benchmark examples/benchmark/generate_report.jl
+#   julia --project=. generate_report.jl
 # ============================================================================
 
 include("config.jl")
