@@ -1,0 +1,27 @@
+{
+    "epoch_losses": [
+        {
+            "train_loss": 829.7642961125301,
+            "epoch": 1,
+            "val_loss": 2581.0770673775687
+        },
+        {
+            "train_loss": 829.4145687278565,
+            "epoch": 2,
+            "val_loss": 2580.5288945974035
+        }
+    ],
+    "basis_name": "QFTBasis",
+    "step_losses": [
+        {
+            "step": 1,
+            "epoch": 1,
+            "loss": 829.7642961125301
+        },
+        {
+            "step": 1,
+            "epoch": 2,
+            "loss": 829.4145687278565
+        }
+    ]
+}

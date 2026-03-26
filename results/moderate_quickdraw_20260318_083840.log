@@ -1,0 +1,86 @@
+================================================================================
+Benchmark: Quick Draw | Preset: moderate
+Image size: 32x32 | Qubits: m=5, n=5
+================================================================================
+
+Step 1: Loading Quick Draw dataset...
+[ Info: Loaded 15 images from cat
+[ Info: Loaded 15 images from dog
+[ Info: Loaded 15 images from airplane
+[ Info: Loaded 15 images from apple
+[ Info: Loaded 15 images from bicycle
+┌ Info: Quick Draw dataset ready
+│   n_train = 20
+└   n_test = 50
+[ Info: Skipping qft — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_qft.json
+┌ Info: Loaded cached einsum code
+└   key = "13db35c88cdf"
+┌ Info: Loaded cached einsum code
+└   key = "28c2aa2ca3b1"
+[ Info: Skipping entangled_qft — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_entangled_qft.json
+┌ Info: Loaded cached einsum code
+└   key = "c937595c1521"
+┌ Info: Loaded cached einsum code
+└   key = "65bfb97dfc59"
+[ Info: Skipping tebd — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_tebd.json
+┌ Info: Loaded cached einsum code
+└   key = "92f9eb7590c1"
+┌ Info: Loaded cached einsum code
+└   key = "0ee2f8eff99d"
+
+--- Training MERABasis ---
+┌ Warning: Skipping mera — incompatible with dataset config
+│   exception =
+│    AssertionError: m must be a power of 2 when >= 2, got 5
+│    Stacktrace:
+│      [1] mera_code(m::Int64, n::Int64; phases::Vector{Float64}, inverse::Bool)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/mera.jl:118
+│      [2] train_basis(::Type{MERABasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, phases::Nothing, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:448
+│      [3] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:411 [inlined]
+│      [4] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:146 [inlined]
+│      [5] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│      [6] train_and_time(BasisType::Type{MERABasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:145
+│      [7] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:204
+│      [8] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_quickdraw.jl:44
+│      [9] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [10] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [11] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:216
+
+--- FFT Baseline ---
+[ Info: Results saved to /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/metrics.json
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+entangled_qft             |      15.34 |      17.36 |      19.08 |      20.62 |        0.0s
+fft                       |      15.27 |      17.27 |      18.99 |      20.50 |        0.1s
+qft                       |      15.33 |      17.35 |      19.08 |      20.61 |        0.0s
+tebd                      |      15.33 |      17.32 |      19.01 |      20.54 |        0.0s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+entangled_qft             |     0.3717 |     0.4542 |     0.4997 |     0.5345
+fft                       |     0.3634 |     0.4440 |     0.4899 |     0.5261
+qft                       |     0.3714 |     0.4542 |     0.4992 |     0.5349
+tebd                      |     0.4055 |     0.4724 |     0.5203 |     0.5591
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw

@@ -1,0 +1,6 @@
+Basis,Quick Draw Time(s),DIV2K Time(s),CLIC Time(s)
+QFT,297.5,27322.9,5425.1
+Entangled QFT,238.7,16747.2,4582.3
+TEBD,163.3,48832.9,13353.2
+MERA,N/A,N/A,N/A
+Classical FFT,0.1,49.4,9.5

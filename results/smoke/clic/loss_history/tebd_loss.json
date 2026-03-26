@@ -1,0 +1,27 @@
+{
+    "epoch_losses": [
+        {
+            "train_loss": 858.4878381239588,
+            "epoch": 1,
+            "val_loss": 2346.319661418487
+        },
+        {
+            "train_loss": 848.6004024557004,
+            "epoch": 2,
+            "val_loss": 2325.2178040264826
+        }
+    ],
+    "basis_name": "TEBDBasis",
+    "step_losses": [
+        {
+            "step": 1,
+            "epoch": 1,
+            "loss": 858.4878381239588
+        },
+        {
+            "step": 1,
+            "epoch": 2,
+            "loss": 848.6004024557004
+        }
+    ]
+}
