@@ -14,4 +14,4 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [sources]
-ParametricDFT = {path = "../.."}
+ParametricDFT = {url = "https://github.com/nzy1997/ParametricDFT.jl", rev = "main"}
