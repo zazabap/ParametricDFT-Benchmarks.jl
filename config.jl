@@ -26,8 +26,8 @@ const TRAINING_PRESETS = Dict(
         batch_size = 16,
     ),
     :moderate => (
-        epochs = 20,
-        steps_per_image = 50,
+        epochs = 10,
+        steps_per_image = 15,
         n_train = 20,
         n_test = 50,
         patience = 10,
@@ -38,7 +38,7 @@ const TRAINING_PRESETS = Dict(
     ),
     :heavy => (
         epochs = 20,
-        steps_per_image = 100,
+        steps_per_image = 30,
         n_train = 50,
         n_test = 100,
         patience = 10,

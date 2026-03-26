@@ -32,6 +32,7 @@ const BASIS_DISPLAY_NAMES = Dict(
     "tebd" => "TEBD",
     "mera" => "MERA",
     "fft" => "Classical FFT",
+    "dct" => "Classical DCT",
 )
 const BASIS_COLORS = Dict(
     "qft" => :blue,
@@ -39,6 +40,7 @@ const BASIS_COLORS = Dict(
     "tebd" => :green,
     "mera" => :purple,
     "fft" => :black,
+    "dct" => :gray,
 )
 
 # ============================================================================
@@ -79,7 +81,7 @@ function generate_rate_distortion_csv(all_results)
                 println(io)
 
                 # Rows
-                for basis_name in ["qft", "entangled_qft", "tebd", "mera", "fft"]
+                for basis_name in ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
                     if haskey(results, basis_name)
                         print(io, BASIS_DISPLAY_NAMES[basis_name])
                         basis_data = results[basis_name]
@@ -227,7 +229,7 @@ function generate_reconstruction_grids(all_results)
         end
 
         sample_img = test_images[1]
-        basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft"]
+        basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
 
         # Load trained bases
         trained_bases = Dict{String,Any}()
@@ -242,6 +244,7 @@ function generate_reconstruction_grids(all_results)
         available_bases = [b for b in ["qft", "entangled_qft", "tebd", "mera"]
                            if haskey(trained_bases, b)]
         push!(available_bases, "fft")
+        push!(available_bases, "dct")
 
         n_rows = 1 + length(available_bases)  # original + each available basis
         n_cols = length(KEEP_RATIOS)
@@ -275,6 +278,8 @@ function generate_reconstruction_grids(all_results)
 
                 recovered = if basis_name == "fft"
                     fft_compress_recover(sample_img, keep_ratio)
+                elseif basis_name == "dct"
+                    dct_compress_recover(sample_img, keep_ratio)
                 elseif haskey(trained_bases, basis_name)
                     basis = trained_bases[basis_name]
                     compressed = compress(basis, sample_img; ratio = 1.0 - keep_ratio)
@@ -320,7 +325,7 @@ function generate_cross_dataset_summary(all_results)
         end
         println(io, ",Avg Rank")
 
-        basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft"]
+        basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
 
         # Compute ranks per dataset
         ranks = Dict{String,Vector{Float64}}()
@@ -395,7 +400,7 @@ function generate_timing_table(all_results)
         end
         println(io)
 
-        for basis_name in ["qft", "entangled_qft", "tebd", "mera", "fft"]
+        for basis_name in ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
             print(io, BASIS_DISPLAY_NAMES[basis_name])
             for dataset_name in DATASET_NAMES
                 if haskey(all_results, dataset_name) && haskey(all_results[dataset_name], basis_name)
@@ -424,7 +429,7 @@ function generate_cross_dataset_plots(all_results)
     plots_dir = joinpath(RESULTS_DIR, "plots")
     mkpath(plots_dir)
 
-    basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft"]
+    basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
     available_datasets = [d for d in DATASET_NAMES if haskey(all_results, d)]
 
     for (metric_name, ylabel, higher_better) in [

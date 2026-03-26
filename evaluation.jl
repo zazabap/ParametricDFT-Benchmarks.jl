@@ -120,6 +120,55 @@ function evaluate_fft_baseline_timed(test_images::Vector{<:AbstractMatrix}, keep
 end
 
 # ============================================================================
+# DCT Baseline
+# ============================================================================
+
+"""
+    dct_compress_recover(img::AbstractMatrix, keep_ratio::Float64)
+
+Compress and recover an image using classical DCT (the basis of JPEG).
+"""
+function dct_compress_recover(img::AbstractMatrix, keep_ratio::Float64)
+    freq = dct(img)
+    total = length(freq)
+    keep = max(1, round(Int, total * keep_ratio))
+
+    flat = vec(freq)
+    idx = partialsortperm(abs.(flat), 1:keep, rev = true)
+    compressed = zeros(Float64, size(freq))
+    compressed[idx] = freq[idx]
+
+    return idct(compressed)
+end
+
+"""
+    evaluate_dct_baseline_timed(test_images, keep_ratios)
+
+Evaluate classical DCT baseline at multiple ratios. Returns `(metrics_dict, elapsed_seconds)`.
+"""
+function evaluate_dct_baseline_timed(test_images::Vector{<:AbstractMatrix}, keep_ratios::Vector{Float64})
+    elapsed = @elapsed begin
+        results = Dict{Float64,NamedTuple}()
+        for keep_ratio in keep_ratios
+            mse_vals, psnr_vals, ssim_vals = Float64[], Float64[], Float64[]
+            for img in test_images
+                recovered = dct_compress_recover(img, keep_ratio)
+                metrics = compute_metrics(img, recovered)
+                push!(mse_vals, metrics.mse)
+                push!(psnr_vals, metrics.psnr)
+                push!(ssim_vals, metrics.ssim)
+            end
+            results[keep_ratio] = (
+                mean_mse = mean(mse_vals), std_mse = std(mse_vals),
+                mean_psnr = mean(psnr_vals), std_psnr = std(psnr_vals),
+                mean_ssim = mean(ssim_vals), std_ssim = std(ssim_vals),
+            )
+        end
+    end
+    return results, elapsed
+end
+
+# ============================================================================
 # Training Wrapper
 # ============================================================================
 
@@ -129,7 +178,7 @@ end
 Train a basis with timing. Returns `(trained_basis, history, elapsed_seconds)`.
 
 Sets `Random.seed!(42)` before training for reproducibility.
-Computes `k = round(Int, 0.10 * img_size^2)` for MSELoss.
+Uses L1Norm to encourage sparsity (fast: no truncation or inverse needed during training).
 """
 function train_and_time(
     BasisType::Type{<:AbstractSparseBasis},
@@ -139,14 +188,13 @@ function train_and_time(
     save_loss_path::Union{Nothing,String} = nothing,
 )
     m, n = dataset_config.m, dataset_config.n
-    k = round(Int, 0.10 * dataset_config.img_size^2)
 
     Random.seed!(42)
     elapsed = @elapsed begin
         basis, history = train_basis(
             BasisType, dataset;
             m = m, n = n,
-            loss = MSELoss(k),
+            loss = L1Norm(),
             epochs = preset.epochs,
             steps_per_image = preset.steps_per_image,
             validation_split = preset.validation_split,
@@ -221,6 +269,11 @@ function run_all_bases(
     println("\n--- FFT Baseline ---")
     fft_metrics, fft_time = evaluate_fft_baseline_timed(test_images, KEEP_RATIOS)
     results["fft"] = Dict(:metrics => fft_metrics, :time => fft_time)
+
+    # DCT Baseline
+    println("\n--- DCT Baseline ---")
+    dct_metrics, dct_time = evaluate_dct_baseline_timed(test_images, KEEP_RATIOS)
+    results["dct"] = Dict(:metrics => dct_metrics, :time => dct_time)
 
     return results
 end
