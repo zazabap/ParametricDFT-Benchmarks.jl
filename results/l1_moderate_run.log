@@ -1,0 +1,272 @@
+=== Benchmark L1Norm started at Thu Mar 26 13:19:07 UTC 2026 ===
+--- QuickDraw ---
+[ Info: Loaded 15 images from cat
+[ Info: Loaded 15 images from dog
+[ Info: Loaded 15 images from airplane
+[ Info: Loaded 15 images from apple
+[ Info: Loaded 15 images from bicycle
+┌ Info: Quick Draw dataset ready
+│   n_train = 20
+└   n_test = 50
+[ Info: Skipping qft — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_qft.json
+┌ Info: Loaded cached einsum code
+└   key = "13db35c88cdf"
+┌ Info: Loaded cached einsum code
+└   key = "28c2aa2ca3b1"
+[ Info: Skipping entangled_qft — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_entangled_qft.json
+┌ Info: Loaded cached einsum code
+└   key = "c937595c1521"
+┌ Info: Loaded cached einsum code
+└   key = "65bfb97dfc59"
+[ Info: Skipping tebd — already trained at /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_tebd.json
+┌ Info: Loaded cached einsum code
+└   key = "92f9eb7590c1"
+┌ Info: Loaded cached einsum code
+└   key = "0ee2f8eff99d"
+┌ Warning: Skipping mera — incompatible with dataset config
+│   exception =
+│    AssertionError: m must be a power of 2 when >= 2, got 5
+│    Stacktrace:
+│      [1] mera_code(m::Int64, n::Int64; phases::Vector{Float64}, inverse::Bool)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/mera.jl:118
+│      [2] train_basis(::Type{MERABasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, phases::Nothing, loss::L1Norm, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:457
+│      [3] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:420 [inlined]
+│      [4] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:194 [inlined]
+│      [5] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│      [6] train_and_time(BasisType::Type{MERABasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:193
+│      [7] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:252
+│      [8] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_quickdraw.jl:44
+│      [9] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [10] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [11] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:264
+[ Info: Results saved to /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/metrics.json
+================================================================================
+Benchmark: Quick Draw | Preset: moderate
+Image size: 32x32 | Qubits: m=5, n=5
+================================================================================
+
+Step 1: Loading Quick Draw dataset...
+
+--- Training MERABasis ---
+
+--- FFT Baseline ---
+
+--- DCT Baseline ---
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+dct                       |      16.08 |      18.43 |      20.39 |      22.13 |        0.3s
+entangled_qft             |      15.58 |      17.68 |      19.45 |      21.00 |        0.0s
+fft                       |      15.27 |      17.27 |      18.99 |      20.50 |        0.1s
+qft                       |      15.58 |      17.68 |      19.44 |      21.00 |        0.0s
+tebd                      |      15.32 |      17.32 |      19.02 |      20.55 |        0.0s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+dct                       |     0.3968 |     0.4667 |     0.5095 |     0.5427
+entangled_qft             |     0.4168 |     0.4951 |     0.5437 |     0.5820
+fft                       |     0.3634 |     0.4440 |     0.4899 |     0.5261
+qft                       |     0.4180 |     0.4965 |     0.5424 |     0.5824
+tebd                      |     0.4019 |     0.4810 |     0.5257 |     0.5603
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw
+--- CLIC ---
+
+[60932] signal 15: Terminated
+in expression starting at /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_clic.jl:37
+unknown function (ip: 0x7079d118cd5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x7079839a010f) at (unknown file)
+unknown function (ip: 0x7079b4211e3f) at (unknown file)
+unknown function (ip: 0x7079d1190a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x7079d118cd5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x7079839a010f) at (unknown file)
+unknown function (ip: 0x7079b4211e3f) at (unknown file)
+unknown function (ip: 0x7079d1190a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x707903874430) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x7079038b52aa) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x707904547357) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x707904547787) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x7079038803eb) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x70790393fce9) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x707904500e68) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x7079039f1df6) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+cuStreamSynchronize at /usr/lib/x86_64-linux-gnu/libcuda.so.1 (unknown line)
+unchecked_cuStreamSynchronize at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/libcuda.jl:5091 [inlined]
+#synchronization_worker##0 at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:125
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:56
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x7079839a010f) at (unknown file)
+unknown function (ip: 0x7079b4211e3f) at (unknown file)
+unknown function (ip: 0x7079d1190a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x7079d118cd5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x7079839a010f) at (unknown file)
+unknown function (ip: 0x7079b4211e3f) at (unknown file)
+unknown function (ip: 0x7079d1190a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x7079d118cd5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+task_done_hook at ./task.jl:868
+jfptr_task_done_hook_68128.1 at /usr/local/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+jl_finish_task at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/task.c:345
+start_task at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/task.c:1260
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x7079d118cd5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+put! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:40
+nonblocking_synchronize at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:168
+#synchronize#575 at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:200
+synchronize at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:194 [inlined]
+synchronize at /root/.julia/packages/CUDA/Il00B/src/memory.jl:527 [inlined]
+synchronize at /root/.julia/packages/CUDA/Il00B/src/array.jl:493
+#697 at /root/.julia/packages/CUDA/Il00B/src/array.jl:613 [inlined]
+#context!#567 at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:168 [inlined]
+context! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:163 [inlined]
+unsafe_copyto! at /root/.julia/packages/CUDA/Il00B/src/array.jl:608
+copyto! at /root/.julia/packages/CUDA/Il00B/src/array.jl:560 [inlined]
+getindex at /root/.julia/packages/GPUArrays/3a5jB/src/host/indexing.jl:52 [inlined]
+scalar_getindex at /root/.julia/packages/GPUArrays/3a5jB/src/host/indexing.jl:36 [inlined]
+_getindex at /root/.julia/packages/GPUArrays/3a5jB/src/host/indexing.jl:19 [inlined]
+getindex at /root/.julia/packages/GPUArrays/3a5jB/src/host/indexing.jl:17 [inlined]
+macro expansion at /root/.julia/packages/GPUArraysCore/aNaXo/src/GPUArraysCore.jl:206 [inlined]
+#_mapreduce#48 at /root/.julia/packages/GPUArrays/3a5jB/src/host/mapreduce.jl:88
+_mapreduce at /root/.julia/packages/GPUArrays/3a5jB/src/host/mapreduce.jl:40 [inlined]
+#mapreduce#46 at /root/.julia/packages/GPUArrays/3a5jB/src/host/mapreduce.jl:35 [inlined]
+mapreduce at /root/.julia/packages/GPUArrays/3a5jB/src/host/mapreduce.jl:35 [inlined]
+all at /root/.julia/packages/GPUArrays/3a5jB/src/host/mapreduce.jl:98 [inlined]
+#_compute_gradients##0 at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:34
+unknown function (ip: 0x70798392ed72) at (unknown file)
+_any at ./anyall.jl:124
+unknown function (ip: 0x70798392901e) at (unknown file)
+#any#756 at ./reducedim.jl:989
+any at ./reducedim.jl:989
+unknown function (ip: 0x707983928dc4) at (unknown file)
+_compute_gradients at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:34
+unknown function (ip: 0x70798559e9d9) at (unknown file)
+#optimize!#36 at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:277
+unknown function (ip: 0x707985cc1613) at (unknown file)
+optimize! at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:228
+unknown function (ip: 0x707985cae623) at (unknown file)
+#_train_basis_core#37 at /home/claude-user/ParametricDFT-fresh/src/training.jl:152
+_train_basis_core at /home/claude-user/ParametricDFT-fresh/src/training.jl:22
+unknown function (ip: 0x707985c7f5a7) at (unknown file)
+#train_basis#56 at /home/claude-user/ParametricDFT-fresh/src/training.jl:257
+train_basis at /home/claude-user/ParametricDFT-fresh/src/training.jl:226 [inlined]
+macro expansion at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:194 [inlined]
+macro expansion at ./timing.jl:461 [inlined]
+#train_and_time#10 at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:193
+train_and_time at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:183
+unknown function (ip: 0x7079b42dee21) at (unknown file)
+run_all_bases at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:252
+unknown function (ip: 0x7079b427bae6) at (unknown file)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+do_call at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:123
+eval_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:243
+eval_stmt_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:194 [inlined]
+eval_body at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:707
+jl_interpret_toplevel_thunk at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:898
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1035
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:975
+ijl_toplevel_eval at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1047
+ijl_toplevel_eval_in at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1092
+eval at ./boot.jl:489
+include_string at ./loading.jl:2867
+_include at ./loading.jl:2927
+include at ./Base.jl:306
+exec_options at ./client.jl:317
+_start at ./client.jl:550
+jfptr__start_47004.1 at /usr/local/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+true_main at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/jlapi.c:971
+jl_repl_entrypoint at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/jlapi.c:1139
+main at julia (unknown line)
+unknown function (ip: 0x7079d111e1c9) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__libc_start_main at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: 0x4010b8) at julia
+unknown function (ip: (nil)) at (unknown file)
+Allocations: 488147202 (Pool: 488133406; Big: 13796); GC: 523
+┌ Info: CLIC dataset ready
+│   n_train = 20
+│   n_test = 50
+└   img_size = 512
+┌ Info: Loaded cached einsum code
+└   key = "e5a73a720aa3"
+┌ Info: Loaded cached einsum code
+└   key = "64033db90934"
+┌ Info: Loaded cached einsum code
+└   key = "ae594813cc32"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "738fe751f6f9"
+================================================================================
+Benchmark: CLIC | Preset: moderate
+Image size: 512x512 | Qubits: m=9, n=9
+================================================================================
+
+Step 1: Loading CLIC dataset...
+
+--- Training QFTBasis ---
