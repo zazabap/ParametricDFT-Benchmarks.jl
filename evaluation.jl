@@ -173,12 +173,13 @@ end
 # ============================================================================
 
 """
-    train_and_time(BasisType, dataset, dataset_config, preset)
+    train_and_time(BasisType, dataset, dataset_config, preset; loss=L1Norm(), ...)
 
 Train a basis with timing. Returns `(trained_basis, history, elapsed_seconds)`.
 
 Sets `Random.seed!(42)` before training for reproducibility.
-Uses L1Norm to encourage sparsity (fast: no truncation or inverse needed during training).
+Default loss is L1Norm (fast: no truncation or inverse needed during training).
+Pass `loss=MSELoss(k)` for reconstruction-aware training.
 """
 function train_and_time(
     BasisType::Type{<:AbstractSparseBasis},
@@ -186,6 +187,7 @@ function train_and_time(
     dataset_config::NamedTuple,
     preset::NamedTuple;
     save_loss_path::Union{Nothing,String} = nothing,
+    loss::AbstractLoss = L1Norm(),
 )
     m, n = dataset_config.m, dataset_config.n
 
@@ -194,7 +196,7 @@ function train_and_time(
         basis, history = train_basis(
             BasisType, dataset;
             m = m, n = n,
-            loss = L1Norm(),
+            loss = loss,
             epochs = preset.epochs,
             steps_per_image = preset.steps_per_image,
             validation_split = preset.validation_split,
@@ -214,7 +216,7 @@ end
 # ============================================================================
 
 """
-    run_all_bases(train_images, test_images, dataset_config, preset, output_dir)
+    run_all_bases(train_images, test_images, dataset_config, preset, output_dir; loss=L1Norm())
 
 Train and evaluate all basis types + FFT baseline. Skips bases that are
 incompatible with the dataset config (e.g., MERA requires power-of-2 qubits).
@@ -225,7 +227,8 @@ function run_all_bases(
     test_images::Vector{<:AbstractMatrix},
     dataset_config::NamedTuple,
     preset::NamedTuple,
-    output_dir::String,
+    output_dir::String;
+    loss::AbstractLoss = L1Norm(),
 )
     loss_dir = joinpath(output_dir, "loss_history")
     mkpath(loss_dir)
@@ -252,6 +255,7 @@ function run_all_bases(
             basis, history, elapsed = train_and_time(
                 BasisType, train_images, dataset_config, preset;
                 save_loss_path = loss_path,
+                loss = loss,
             )
 
             mkpath(output_dir)

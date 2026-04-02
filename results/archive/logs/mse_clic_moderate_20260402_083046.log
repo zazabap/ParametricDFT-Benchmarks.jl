@@ -1,0 +1,225 @@
+
+[41667] signal 15: Terminated
+in expression starting at /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+unknown function (ip: 0x75a93a5d5d5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x75a8edd21d4f) at (unknown file)
+unknown function (ip: 0x75a91d311b9f) at (unknown file)
+unknown function (ip: 0x75a93a5d9a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x75a93a5d5d5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x75a8edd21d4f) at (unknown file)
+unknown function (ip: 0x75a91d311b9f) at (unknown file)
+unknown function (ip: 0x75a93a5d9a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x75a93a5d5d5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x75a8edd21d4f) at (unknown file)
+unknown function (ip: 0x75a91d311b9f) at (unknown file)
+unknown function (ip: 0x75a93a5d9a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x75a93a5d5d5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+#wait#398 at ./condition.jl:141
+wait at ./condition.jl:136 [inlined]
+take! at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:53
+synchronization_worker at /root/.julia/packages/CUDA/Il00B/lib/cudadrv/synchronization.jl:119
+unknown function (ip: 0x75a8edd21d4f) at (unknown file)
+unknown function (ip: 0x75a91d311b9f) at (unknown file)
+unknown function (ip: 0x75a93a5d9a93) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__clone at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: (nil)) at (unknown file)
+unknown function (ip: 0x75a93a5d5d5f) at /usr/lib/x86_64-linux-gnu/libc.so.6
+pthread_cond_wait at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/scheduler.c:523
+poptask at ./task.jl:1216
+wait at ./task.jl:1228
+task_done_hook at ./task.jl:868
+jfptr_task_done_hook_68128.1 at /usr/local/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+jl_finish_task at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/task.c:345
+start_task at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/task.c:1260
+unknown function (ip: (nil)) at (unknown file)
+__sched_yield at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: 0x75a86cc7ac47) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cc76aaa) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cf11721) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86d941b2e) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86d96a84c) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cc28964) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cc3420f) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cc34ac5) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+unknown function (ip: 0x75a86cdf23d6) at /usr/lib/x86_64-linux-gnu/libcuda.so.1
+cuLaunchKernel at /usr/lib/x86_64-linux-gnu/libcuda.so.1 (unknown line)
+unknown function (ip: 0x75a87a947d95) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+unknown function (ip: 0x75a87a9ae37a) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+unknown function (ip: 0x75a8742226b4) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+unknown function (ip: 0x75a874110aa4) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+unknown function (ip: 0x75a8733df19d) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+unknown function (ip: 0x75a87352c653) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12
+cublasLtZZZMatmul at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublasLt.so.12 (unknown line)
+unknown function (ip: 0x75a8a49c1d39) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublas.so
+unknown function (ip: 0x75a8a49c3a53) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublas.so
+unknown function (ip: 0x75a8a4c39938) at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublas.so
+cublasZgemmStridedBatched_64 at /root/.julia/artifacts/b842734cc2028a5166fdcefc7e5a24fb79ab3e79/lib/libcublas.so (unknown line)
+macro expansion at /root/.julia/packages/CUDA/Il00B/lib/cublas/libcublas.jl:4564 [inlined]
+#cublasZgemmStridedBatched_64##0 at /root/.julia/packages/GPUToolbox/x8hVh/src/ccalls.jl:34 [inlined]
+retry_reclaim at /root/.julia/packages/CUDA/Il00B/src/memory.jl:434 [inlined]
+check at /root/.julia/packages/CUDA/Il00B/lib/cublas/libcublas.jl:22 [inlined]
+cublasZgemmStridedBatched_64 at /root/.julia/packages/GPUToolbox/x8hVh/src/ccalls.jl:33 [inlined]
+gemm_strided_batched! at /root/.julia/packages/CUDA/Il00B/lib/cublas/wrappers.jl:1626
+_batched_gemm! at /root/.julia/packages/OMEinsum/Ym4mB/ext/CUDAExt.jl:110 [inlined]
+binary_einsum! at /root/.julia/packages/OMEinsum/Ym4mB/src/binaryrules.jl:103
+unknown function (ip: 0x75a8edd7df82) at (unknown file)
+binary_einsum_cublas! at /root/.julia/packages/OMEinsum/Ym4mB/ext/CUDAExt.jl:166
+einsum! at /root/.julia/packages/OMEinsum/Ym4mB/ext/CUDAExt.jl:185
+unknown function (ip: 0x75a8eddfe820) at (unknown file)
+einsum! at /root/.julia/packages/OMEinsum/Ym4mB/src/einsum.jl:44
+einsum at /root/.julia/packages/OMEinsum/Ym4mB/src/einsum.jl:26
+einsum_grad at /root/.julia/packages/OMEinsum/Ym4mB/src/autodiff.jl:28
+#einsum_pullback##3 at /root/.julia/packages/OMEinsum/Ym4mB/src/autodiff.jl:39 [inlined]
+unthunk at /root/.julia/packages/ChainRulesCore/Vsbj9/src/tangent_types/thunks.jl:213 [inlined]
+getindex at /root/.julia/packages/ChainRulesCore/Vsbj9/src/tangent_types/structural_tangent.jl:382 [inlined]
+set_pullback at /root/.julia/packages/OMEinsum/Ym4mB/src/autodiff.jl:49 [inlined]
+ZBack at /root/.julia/packages/Zygote/55SqB/src/compiler/chainrules.jl:222
+unknown function (ip: 0x75a8eddfe3e6) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd75842) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd72fd2) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edde3232) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edde09c2) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd54d32) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8eddab092) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd54d32) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8eddab092) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd54d32) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8eddab092) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd524c2) at (unknown file)
+#_#93 at /root/.julia/packages/OMEinsum/Ym4mB/src/einsequence.jl:260 [inlined]
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:0
+#375 at /root/.julia/packages/Zygote/55SqB/src/lib/lib.jl:214
+#377 at /root/.julia/packages/ZygoteRules/CkVIK/src/adjoint.jl:72 [inlined]
+NestedEinsum at /root/.julia/packages/OMEinsum/Ym4mB/src/einsequence.jl:257 [inlined]
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:0
+#375 at /root/.julia/packages/Zygote/55SqB/src/lib/lib.jl:214
+#377 at /root/.julia/packages/ZygoteRules/CkVIK/src/adjoint.jl:72
+unknown function (ip: 0x75a8edd4dc52) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd322b6) at (unknown file)
+batched_loss_mse at /home/claude-user/ParametricDFT-fresh/src/loss.jl:197 [inlined]
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:0
+unknown function (ip: 0x75a8edd2cbe6) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd2bbd6) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+#loss_function#9 at /home/claude-user/ParametricDFT-fresh/src/loss.jl:255 [inlined]
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:0
+unknown function (ip: 0x75a8edd263e4) at (unknown file)
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:100
+unknown function (ip: 0x75a8edd25436) at (unknown file)
+#48 at /home/claude-user/ParametricDFT-fresh/src/training.jl:123 [inlined]
+Pullback at /root/.julia/packages/Zygote/55SqB/src/compiler/interface2.jl:0
+#pullback##0 at /root/.julia/packages/Zygote/55SqB/src/compiler/interface.jl:97
+#52 at /home/claude-user/ParametricDFT-fresh/src/training.jl:138 [inlined]
+_compute_gradients at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:23
+unknown function (ip: 0x75a8ee995e99) at (unknown file)
+#optimize!#36 at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:277
+unknown function (ip: 0x75a8ef1003cb) at (unknown file)
+optimize! at /home/claude-user/ParametricDFT-fresh/src/optimizers.jl:228
+unknown function (ip: 0x75a8ef0ecf53) at (unknown file)
+#_train_basis_core#37 at /home/claude-user/ParametricDFT-fresh/src/training.jl:147
+_train_basis_core at /home/claude-user/ParametricDFT-fresh/src/training.jl:22
+unknown function (ip: 0x75a8ef0c824e) at (unknown file)
+#train_basis#56 at /home/claude-user/ParametricDFT-fresh/src/training.jl:251
+train_basis at /home/claude-user/ParametricDFT-fresh/src/training.jl:220 [inlined]
+macro expansion at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+macro expansion at ./timing.jl:461 [inlined]
+#train_and_time#10 at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+train_and_time at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:184
+unknown function (ip: 0x75a91d3e0350) at (unknown file)
+#run_all_bases#11 at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+run_all_bases at /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:225
+unknown function (ip: 0x75a91d3a5352) at (unknown file)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+do_call at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:123
+eval_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:243
+eval_stmt_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:194 [inlined]
+eval_body at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:707
+jl_interpret_toplevel_thunk at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:898
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1035
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:975
+ijl_toplevel_eval at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1047
+ijl_toplevel_eval_in at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1092
+eval at ./boot.jl:489
+include_string at ./loading.jl:2867
+_include at ./loading.jl:2927
+include at ./Base.jl:307
+IncludeInto at ./Base.jl:308
+jfptr_IncludeInto_70575.1 at /usr/local/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+do_call at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:123
+eval_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:243
+eval_stmt_value at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:194 [inlined]
+eval_body at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:707
+jl_interpret_toplevel_thunk at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/interpreter.c:898
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1035
+jl_toplevel_eval_flex at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:975
+ijl_toplevel_eval at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1047
+ijl_toplevel_eval_in at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/toplevel.c:1092
+eval at ./boot.jl:489
+exec_options at ./client.jl:283
+_start at ./client.jl:550
+jfptr__start_47004.1 at /usr/local/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/julia.h:2391 [inlined]
+true_main at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/jlapi.c:971
+jl_repl_entrypoint at /cache/build/builder-amdci5-2/julialang/julia-release-1-dot-12/src/jlapi.c:1139
+main at julia (unknown line)
+unknown function (ip: 0x75a93a5671c9) at /usr/lib/x86_64-linux-gnu/libc.so.6
+__libc_start_main at /usr/lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+unknown function (ip: 0x4010b8) at julia
+unknown function (ip: (nil)) at (unknown file)
+Allocations: 467605712 (Pool: 467600520; Big: 5192); GC: 148

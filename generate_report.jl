@@ -20,10 +20,11 @@ using CairoMakie
 using CairoMakie: Axis
 using ParametricDFT
 
-const DATASET_NAMES = [:quickdraw, :div2k, :clic]
+const DATASET_NAMES = [:quickdraw, :div2k_8q, :clic]
 const DISPLAY_NAMES = Dict(
     :quickdraw => "Quick Draw",
     :div2k => "DIV2K",
+    :div2k_8q => "DIV2K (8q)",
     :clic => "CLIC",
 )
 const BASIS_DISPLAY_NAMES = Dict(
@@ -211,25 +212,23 @@ function generate_reconstruction_grids(all_results)
 
         # Load first test image using the appropriate loader
         dataset_config = DATASET_CONFIGS[dataset_name]
-        # We need a test image — load just 1
+        # We need test images — load up to 5
+        n_grid_images = 5
         test_images = try
             if dataset_name == :quickdraw
-                _, test, _ = load_quickdraw_dataset(; n_train = 1, n_test = 1)
+                _, test, _ = load_quickdraw_dataset(; n_train = 1, n_test = n_grid_images, img_size = dataset_config.img_size)
                 test
-            elseif dataset_name == :div2k
-                _, test, _ = load_div2k_dataset(; n_train = 1, n_test = 1)
+            elseif dataset_name in (:div2k, :div2k_7q, :div2k_8q)
+                _, test, _ = load_div2k_dataset(; n_train = 1, n_test = n_grid_images, img_size = dataset_config.img_size)
                 test
             else
-                _, test, _ = load_clic_dataset(; n_train = 1, n_test = 1)
+                _, test, _ = load_clic_dataset(; n_train = 1, n_test = n_grid_images, img_size = dataset_config.img_size)
                 test
             end
         catch e
             @warn "Could not load test image for $dataset_name: $e"
             continue
         end
-
-        sample_img = test_images[1]
-        basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
 
         # Load trained bases
         trained_bases = Dict{String,Any}()
@@ -246,65 +245,69 @@ function generate_reconstruction_grids(all_results)
         push!(available_bases, "fft")
         push!(available_bases, "dct")
 
-        n_rows = 1 + length(available_bases)  # original + each available basis
-        n_cols = length(KEEP_RATIOS)
-        cell_size = 180
+        for (img_idx, sample_img) in enumerate(test_images)
+            basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
 
-        fig = Figure(size = (cell_size * n_cols + 80, cell_size * n_rows + 40);
-            figure_padding = 10)
+            n_rows = 1 + length(available_bases)  # original + each available basis
+            n_cols = length(KEEP_RATIOS)
+            cell_size = 180
 
-        # Column headers
-        for (j, ratio) in enumerate(KEEP_RATIOS)
-            Label(fig[0, j], "$(round(Int, ratio * 100))% kept"; fontsize = 14)
-        end
+            fig = Figure(size = (cell_size * n_cols + 80, cell_size * n_rows + 40);
+                figure_padding = 10)
 
-        # Original row
-        Label(fig[1, 0], "Original"; fontsize = 12, rotation = pi / 2)
-        for j in 1:n_cols
-            ax = Axis(fig[1, j]; aspect = 1)
-            hidedecorations!(ax)
-            heatmap!(ax, rotr90(sample_img); colormap = :grays, colorrange = (0.0, 1.0))
-        end
-
-        # Basis rows
-        for (i, basis_name) in enumerate(available_bases)
-            row = i + 1
-            Label(fig[row, 0], get(BASIS_DISPLAY_NAMES, basis_name, basis_name);
-                fontsize = 12, rotation = pi / 2)
-
-            for (j, keep_ratio) in enumerate(KEEP_RATIOS)
-                ax = Axis(fig[row, j]; aspect = 1)
-                hidedecorations!(ax)
-
-                recovered = if basis_name == "fft"
-                    fft_compress_recover(sample_img, keep_ratio)
-                elseif basis_name == "dct"
-                    dct_compress_recover(sample_img, keep_ratio)
-                elseif haskey(trained_bases, basis_name)
-                    basis = trained_bases[basis_name]
-                    compressed = compress(basis, sample_img; ratio = 1.0 - keep_ratio)
-                    real.(recover(basis, compressed))
-                else
-                    zeros(size(sample_img))
-                end
-
-                heatmap!(ax, rotr90(clamp.(recovered, 0.0, 1.0)); colormap = :grays,
-                    colorrange = (0.0, 1.0))
+            # Column headers
+            for (j, ratio) in enumerate(KEEP_RATIOS)
+                Label(fig[0, j], "$(round(Int, ratio * 100))% kept"; fontsize = 14)
             end
-        end
 
-        # Force uniform cell sizes
-        for row in 1:n_rows
-            rowsize!(fig.layout, row, CairoMakie.Fixed(cell_size))
-        end
-        for col in 1:n_cols
-            colsize!(fig.layout, col, CairoMakie.Fixed(cell_size))
-        end
-        colgap!(fig.layout, 5)
-        rowgap!(fig.layout, 5)
+            # Original row
+            Label(fig[1, 0], "Original"; fontsize = 12, rotation = pi / 2)
+            for j in 1:n_cols
+                ax = Axis(fig[1, j]; aspect = 1)
+                hidedecorations!(ax)
+                heatmap!(ax, rotr90(sample_img); colormap = :grays, colorrange = (0.0, 1.0))
+            end
 
-        save(joinpath(plots_dir, "reconstruction_grid.png"), fig; px_per_unit = 2)
-        @info "Saved reconstruction grid for $(DISPLAY_NAMES[dataset_name])"
+            # Basis rows
+            for (i, basis_name) in enumerate(available_bases)
+                row = i + 1
+                Label(fig[row, 0], get(BASIS_DISPLAY_NAMES, basis_name, basis_name);
+                    fontsize = 12, rotation = pi / 2)
+
+                for (j, keep_ratio) in enumerate(KEEP_RATIOS)
+                    ax = Axis(fig[row, j]; aspect = 1)
+                    hidedecorations!(ax)
+
+                    recovered = if basis_name == "fft"
+                        fft_compress_recover(sample_img, keep_ratio)
+                    elseif basis_name == "dct"
+                        dct_compress_recover(sample_img, keep_ratio)
+                    elseif haskey(trained_bases, basis_name)
+                        basis = trained_bases[basis_name]
+                        compressed = compress(basis, sample_img; ratio = 1.0 - keep_ratio)
+                        real.(recover(basis, compressed))
+                    else
+                        zeros(size(sample_img))
+                    end
+
+                    heatmap!(ax, rotr90(clamp.(recovered, 0.0, 1.0)); colormap = :grays,
+                        colorrange = (0.0, 1.0))
+                end
+            end
+
+            # Force uniform cell sizes
+            for row in 1:n_rows
+                rowsize!(fig.layout, row, CairoMakie.Fixed(cell_size))
+            end
+            for col in 1:n_cols
+                colsize!(fig.layout, col, CairoMakie.Fixed(cell_size))
+            end
+            colgap!(fig.layout, 5)
+            rowgap!(fig.layout, 5)
+
+            save(joinpath(plots_dir, "reconstruction_grid_$(img_idx).png"), fig; px_per_unit = 2)
+            @info "Saved reconstruction grid $(img_idx) for $(DISPLAY_NAMES[dataset_name])"
+        end
     end
 end
 
