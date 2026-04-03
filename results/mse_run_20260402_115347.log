@@ -1,0 +1,475 @@
+=== Quick Draw MSE moderate ===
+Thu Apr  2 11:53:47 UTC 2026
+[ Info: Loaded 15 images from cat
+[ Info: Loaded 15 images from dog
+[ Info: Loaded 15 images from airplane
+[ Info: Loaded 15 images from apple
+[ Info: Loaded 15 images from bicycle
+┌ Info: Quick Draw dataset ready
+│   n_train = 20
+└   n_test = 50
+┌ Info: Loaded cached einsum code
+└   key = "28c2aa2ca3b1"
+┌ Info: Loaded cached einsum code
+└   key = "13db35c88cdf"
+┌ Info: Loaded cached einsum code
+└   key = "a57d687f89f5"
+┌ Info: Loaded cached einsum code
+└   key = "80e723510ef0"
+┌ Info: Saved trained qft
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_qft.json"
+└   time = 278.3
+┌ Info: Loaded cached einsum code
+└   key = "65bfb97dfc59"
+┌ Info: Loaded cached einsum code
+└   key = "c937595c1521"
+┌ Info: Loaded cached einsum code
+└   key = "468332a39431"
+┌ Info: Loaded cached einsum code
+└   key = "7b16365c2cbc"
+┌ Info: Saved trained entangled_qft
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_entangled_qft.json"
+└   time = 186.7
+┌ Info: Loaded cached einsum code
+└   key = "0ee2f8eff99d"
+┌ Info: Loaded cached einsum code
+└   key = "92f9eb7590c1"
+┌ Info: Loaded cached einsum code
+└   key = "34cb46fd7a47"
+┌ Info: Loaded cached einsum code
+└   key = "261014f72b3a"
+┌ Info: Saved trained tebd
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/trained_tebd.json"
+└   time = 164.4
+┌ Warning: Skipping mera — incompatible with dataset config
+│   exception =
+│    AssertionError: m must be a power of 2 when >= 2, got 5
+│    Stacktrace:
+│      [1] mera_code(m::Int64, n::Int64; phases::Vector{Float64}, inverse::Bool)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/mera.jl:118
+│      [2] train_basis(::Type{MERABasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, phases::Nothing, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:458
+│      [3] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:421 [inlined]
+│      [4] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+│      [5] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│      [6] train_and_time(BasisType::Type{MERABasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String, loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+│      [7] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String; loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+│      [8] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+│      [9] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [10] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [11] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:268
+[ Info: Results saved to /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw/metrics.json
+================================================================================
+Benchmark: quickdraw | MSELoss(k=102) | Preset: moderate
+Image size: 32x32 | Qubits: m=5, n=5
+Total coefficients: 1024 | Keeping top 102 (10%)
+================================================================================
+
+Step 1: Loading dataset...
+
+--- Training QFTBasis ---
+
+--- Training EntangledQFTBasis ---
+
+--- Training TEBDBasis ---
+
+--- Training MERABasis ---
+
+--- FFT Baseline ---
+
+--- DCT Baseline ---
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+dct                       |      16.08 |      18.43 |      20.39 |      22.13 |        0.2s
+entangled_qft             |      17.93 |      22.19 |      25.99 |      29.87 |      186.7s
+fft                       |      15.27 |      17.27 |      18.99 |      20.50 |        0.1s
+qft                       |      17.93 |      22.19 |      25.99 |      29.87 |      278.3s
+tebd                      |      15.31 |      17.33 |      19.04 |      20.57 |      164.4s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+dct                       |     0.3968 |     0.4667 |     0.5095 |     0.5427
+entangled_qft             |     0.8179 |     0.9047 |     0.9399 |     0.9569
+fft                       |     0.3634 |     0.4440 |     0.4899 |     0.5261
+qft                       |     0.8179 |     0.9047 |     0.9399 |     0.9569
+tebd                      |     0.3847 |     0.4592 |     0.5016 |     0.5397
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/quickdraw
+=== Quick Draw done ===
+Thu Apr  2 12:05:05 UTC 2026
+=== DIV2K 8q MSE moderate ===
+Thu Apr  2 12:05:05 UTC 2026
+┌ Info: DIV2K dataset ready
+│   n_train = 20
+│   n_test = 50
+└   img_size = 256
+┌ Info: Loaded cached einsum code
+└   key = "e1e4133121f5"
+┌ Info: Loaded cached einsum code
+└   key = "da671cce5fce"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "3ca1f835b75b"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "ec4af986f33c"
+┌ Info: Saved trained qft
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q/trained_qft.json"
+└   time = 3455.5
+┌ Info: Loaded cached einsum code
+└   key = "94248f20858c"
+┌ Info: Loaded cached einsum code
+└   key = "7a2ad5e072c2"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "8ecc020eaf75"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "0685fc825718"
+┌ Info: Saved trained entangled_qft
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q/trained_entangled_qft.json"
+└   time = 2938.4
+┌ Info: Loaded cached einsum code
+└   key = "bda556e4c4c9"
+┌ Info: Loaded cached einsum code
+└   key = "4b6b8daf0807"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "9a33cc29e26e"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "3b01ad75a06c"
+┌ Info: Saved trained tebd
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q/trained_tebd.json"
+└   time = 6930.3
+┌ Info: Loaded cached einsum code
+└   key = "e5b899522ec8"
+┌ Info: Loaded cached einsum code
+└   key = "6ce9c386efa1"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "c3f0e13b3bf1"
+[ Info: Optimizing einsum contraction (this may take a few minutes for large circuits)...
+┌ Info: Cached einsum code
+└   key = "609eed48dab2"
+┌ Info: Saved trained mera
+│   path = "/home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q/trained_mera.json"
+└   time = 4360.3
+[ Info: Results saved to /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q/metrics.json
+================================================================================
+Benchmark: div2k_8q | MSELoss(k=6554) | Preset: moderate
+Image size: 256x256 | Qubits: m=8, n=8
+Total coefficients: 65536 | Keeping top 6554 (10%)
+================================================================================
+
+Step 1: Loading dataset...
+
+--- Training QFTBasis ---
+
+--- Training EntangledQFTBasis ---
+
+--- Training TEBDBasis ---
+
+--- Training MERABasis ---
+
+--- FFT Baseline ---
+
+--- DCT Baseline ---
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+dct                       |      22.25 |      23.93 |      25.25 |      26.45 |        2.2s
+entangled_qft             |      22.40 |      24.51 |      26.23 |      27.81 |     2938.4s
+fft                       |      21.61 |      23.11 |      24.22 |      25.20 |        2.3s
+mera                      |      22.40 |      24.51 |      26.23 |      27.82 |     4360.3s
+qft                       |      22.40 |      24.51 |      26.23 |      27.81 |     3455.5s
+tebd                      |      22.40 |      24.51 |      26.23 |      27.82 |     6930.3s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+dct                       |     0.5991 |     0.6861 |     0.7387 |     0.7775
+entangled_qft             |     0.6456 |     0.7459 |     0.8059 |     0.8485
+fft                       |     0.5633 |     0.6515 |     0.7043 |     0.7424
+mera                      |     0.6461 |     0.7462 |     0.8062 |     0.8488
+qft                       |     0.6456 |     0.7459 |     0.8059 |     0.8485
+tebd                      |     0.6465 |     0.7466 |     0.8066 |     0.8492
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/div2k_8q
+=== DIV2K 8q done ===
+Thu Apr  2 17:01:10 UTC 2026
+=== CLIC MSE moderate ===
+Thu Apr  2 17:01:10 UTC 2026
+┌ Info: CLIC dataset ready
+│   n_train = 20
+│   n_test = 50
+└   img_size = 512
+┌ Info: Loaded cached einsum code
+└   key = "64033db90934"
+┌ Info: Loaded cached einsum code
+└   key = "e5a73a720aa3"
+┌ Warning: Skipping qft — incompatible with dataset config
+│   exception =
+│    CUDA initialization failed: CUDA error (code 100, CUDA_ERROR_NO_DEVICE)
+│    Stacktrace:
+│      [1] error(s::String)
+│        @ Base ./error.jl:44
+│      [2] functional
+│        @ ~/.julia/packages/CUDA/Il00B/src/initialization.jl:24 [inlined]
+│      [3] task_local_state!()
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:77
+│      [4] device
+│        @ ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:189 [inlined]
+│      [5] CuArray{ComplexF64, 2, CUDA.DeviceMemory}(::UndefInitializer, dims::Tuple{Int64, Int64})
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/src/array.jl:91
+│      [6] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:437 [inlined]
+│      [7] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:442 [inlined]
+│      [8] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:449 [inlined]
+│      [9] to_device
+│        @ /home/claude-user/ParametricDFT-fresh/ext/CUDAExt.jl:12 [inlined]
+│     [10] to_device(x::Matrix{ComplexF64}, device::Symbol)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:12
+│     [11] (::ParametricDFT.var"#44#45"{Symbol})(img::Matrix{Float64})
+│        @ ParametricDFT ./none:-1
+│     [12] iterate
+│        @ ./generator.jl:48 [inlined]
+│     [13] collect(itr::Base.Generator{Vector{Matrix{Float64}}, ParametricDFT.var"#44#45"{Symbol}})
+│        @ Base ./array.jl:790
+│     [14] _train_basis_core(dataset::Vector{Matrix{Float64}}, optcode::OMEinsum.DynamicNestedEinsum{Int64}, inverse_code::OMEinsum.DynamicNestedEinsum{Int64}, initial_tensors::Vector{AbstractArray{ComplexF64}}, m::Int64, n::Int64, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, basis_name::String; save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing, build_basis_fn::Function)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:55
+│     [15] train_basis(::Type{QFTBasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:258
+│     [16] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:227 [inlined]
+│     [17] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+│     [18] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│     [19] train_and_time(BasisType::Type{QFTBasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String, loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+│     [20] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String; loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+│     [21] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+│     [22] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [23] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [24] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:268
+┌ Info: Loaded cached einsum code
+└   key = "ed2ec48618e6"
+┌ Info: Loaded cached einsum code
+└   key = "2a917aa03171"
+┌ Warning: Skipping entangled_qft — incompatible with dataset config
+│   exception =
+│    CUDA initialization failed: CUDA error (code 100, CUDA_ERROR_NO_DEVICE)
+│    Stacktrace:
+│      [1] error(s::String)
+│        @ Base ./error.jl:44
+│      [2] functional
+│        @ ~/.julia/packages/CUDA/Il00B/src/initialization.jl:24 [inlined]
+│      [3] task_local_state!()
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:77
+│      [4] device
+│        @ ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:189 [inlined]
+│      [5] CuArray{ComplexF64, 2, CUDA.DeviceMemory}(::UndefInitializer, dims::Tuple{Int64, Int64})
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/src/array.jl:91
+│      [6] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:437 [inlined]
+│      [7] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:442 [inlined]
+│      [8] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:449 [inlined]
+│      [9] to_device
+│        @ /home/claude-user/ParametricDFT-fresh/ext/CUDAExt.jl:12 [inlined]
+│     [10] to_device(x::Matrix{ComplexF64}, device::Symbol)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:12
+│     [11] (::ParametricDFT.var"#44#45"{Symbol})(img::Matrix{Float64})
+│        @ ParametricDFT ./none:-1
+│     [12] iterate
+│        @ ./generator.jl:48 [inlined]
+│     [13] collect(itr::Base.Generator{Vector{Matrix{Float64}}, ParametricDFT.var"#44#45"{Symbol}})
+│        @ Base ./array.jl:790
+│     [14] _train_basis_core(dataset::Vector{Matrix{Float64}}, optcode::OMEinsum.DynamicNestedEinsum{Int64}, inverse_code::OMEinsum.DynamicNestedEinsum{Int64}, initial_tensors::Vector{AbstractArray{ComplexF64}}, m::Int64, n::Int64, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, basis_name::String; save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing, build_basis_fn::Function)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:55
+│     [15] train_basis(::Type{EntangledQFTBasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, entangle_phases::Nothing, entangle_position::Symbol, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:319
+│     [16] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:279 [inlined]
+│     [17] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+│     [18] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│     [19] train_and_time(BasisType::Type{EntangledQFTBasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String, loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+│     [20] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String; loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+│     [21] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+│     [22] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [23] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [24] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:268
+┌ Info: Loaded cached einsum code
+└   key = "7a5f5d6e7704"
+┌ Info: Loaded cached einsum code
+└   key = "ca39b03f2cb0"
+┌ Warning: Skipping tebd — incompatible with dataset config
+│   exception =
+│    CUDA initialization failed: CUDA error (code 100, CUDA_ERROR_NO_DEVICE)
+│    Stacktrace:
+│      [1] error(s::String)
+│        @ Base ./error.jl:44
+│      [2] functional
+│        @ ~/.julia/packages/CUDA/Il00B/src/initialization.jl:24 [inlined]
+│      [3] task_local_state!()
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:77
+│      [4] device
+│        @ ~/.julia/packages/CUDA/Il00B/lib/cudadrv/state.jl:189 [inlined]
+│      [5] CuArray{ComplexF64, 2, CUDA.DeviceMemory}(::UndefInitializer, dims::Tuple{Int64, Int64})
+│        @ CUDA ~/.julia/packages/CUDA/Il00B/src/array.jl:91
+│      [6] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:437 [inlined]
+│      [7] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:442 [inlined]
+│      [8] CuArray
+│        @ ~/.julia/packages/CUDA/Il00B/src/array.jl:449 [inlined]
+│      [9] to_device
+│        @ /home/claude-user/ParametricDFT-fresh/ext/CUDAExt.jl:12 [inlined]
+│     [10] to_device(x::Matrix{ComplexF64}, device::Symbol)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:12
+│     [11] (::ParametricDFT.var"#44#45"{Symbol})(img::Matrix{Float64})
+│        @ ParametricDFT ./none:-1
+│     [12] iterate
+│        @ ./generator.jl:48 [inlined]
+│     [13] collect(itr::Base.Generator{Vector{Matrix{Float64}}, ParametricDFT.var"#44#45"{Symbol}})
+│        @ Base ./array.jl:790
+│     [14] _train_basis_core(dataset::Vector{Matrix{Float64}}, optcode::OMEinsum.DynamicNestedEinsum{Int64}, inverse_code::OMEinsum.DynamicNestedEinsum{Int64}, initial_tensors::Vector{AbstractArray{ComplexF64}}, m::Int64, n::Int64, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, basis_name::String; save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing, build_basis_fn::Function)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:55
+│     [15] train_basis(::Type{TEBDBasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, phases::Nothing, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:396
+│     [16] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:348 [inlined]
+│     [17] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+│     [18] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│     [19] train_and_time(BasisType::Type{TEBDBasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String, loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+│     [20] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String; loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+│     [21] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+│     [22] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [23] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [24] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:268
+┌ Warning: Skipping mera — incompatible with dataset config
+│   exception =
+│    AssertionError: m must be a power of 2 when >= 2, got 9
+│    Stacktrace:
+│      [1] mera_code(m::Int64, n::Int64; phases::Vector{Float64}, inverse::Bool)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/mera.jl:118
+│      [2] train_basis(::Type{MERABasis}, dataset::Vector{Matrix{Float64}}; m::Int64, n::Int64, phases::Nothing, loss::MSELoss, epochs::Int64, steps_per_image::Int64, validation_split::Float64, shuffle::Bool, early_stopping_patience::Int64, save_loss_path::String, optimizer::Symbol, batch_size::Int64, device::Symbol, checkpoint_interval::Int64, checkpoint_dir::Nothing)
+│        @ ParametricDFT /home/claude-user/ParametricDFT-fresh/src/training.jl:458
+│      [3] train_basis
+│        @ /home/claude-user/ParametricDFT-fresh/src/training.jl:421 [inlined]
+│      [4] macro expansion
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:196 [inlined]
+│      [5] macro expansion
+│        @ ./timing.jl:461 [inlined]
+│      [6] train_and_time(BasisType::Type{MERABasis}, dataset::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}; save_loss_path::String, loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:195
+│      [7] run_all_bases(train_images::Vector{Matrix{Float64}}, test_images::Vector{Matrix{Float64}}, dataset_config::@NamedTuple{m::Int64, n::Int64, img_size::Int64}, preset::@NamedTuple{epochs::Int64, steps_per_image::Int64, n_train::Int64, n_test::Int64, patience::Int64, optimizer::Symbol, validation_split::Float64, device::Symbol, batch_size::Int64}, output_dir::String; loss::MSELoss)
+│        @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:255
+│      [8] top-level scope
+│        @ /home/claude-user/ParametricDFT-fresh/examples/benchmark/run_mse.jl:46
+│      [9] include(mod::Module, _path::String)
+│        @ Base ./Base.jl:306
+│     [10] exec_options(opts::Base.JLOptions)
+│        @ Base ./client.jl:317
+│     [11] _start()
+│        @ Base ./client.jl:550
+└ @ Main /home/claude-user/ParametricDFT-fresh/examples/benchmark/evaluation.jl:268
+[ Info: Results saved to /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/clic/metrics.json
+================================================================================
+Benchmark: clic | MSELoss(k=26214) | Preset: moderate
+Image size: 512x512 | Qubits: m=9, n=9
+Total coefficients: 262144 | Keeping top 26214 (10%)
+================================================================================
+
+Step 1: Loading dataset...
+
+--- Training QFTBasis ---
+
+--- Training EntangledQFTBasis ---
+
+--- Training TEBDBasis ---
+
+--- Training MERABasis ---
+
+--- FFT Baseline ---
+
+--- DCT Baseline ---
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+dct                       |      27.53 |      29.49 |      30.99 |      32.31 |        8.6s
+fft                       |      26.82 |      28.60 |      29.91 |      31.02 |       10.5s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+dct                       |     0.7164 |     0.7797 |     0.8184 |     0.8470
+fft                       |     0.6959 |     0.7595 |     0.7980 |     0.8255
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-fresh/examples/benchmark/results/clic
+=== CLIC done ===
+Thu Apr  2 17:02:19 UTC 2026

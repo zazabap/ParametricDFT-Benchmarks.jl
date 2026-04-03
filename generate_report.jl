@@ -20,7 +20,7 @@ using CairoMakie
 using CairoMakie: Axis
 using ParametricDFT
 
-const DATASET_NAMES = [:quickdraw, :div2k_8q, :clic]
+const DATASET_NAMES = [:quickdraw, :div2k_8q]
 const DISPLAY_NAMES = Dict(
     :quickdraw => "Quick Draw",
     :div2k => "DIV2K",
@@ -109,94 +109,165 @@ end
 # 2. Training Loss Curves
 # ============================================================================
 
+"""
+    _load_training_history(dataset_name, results)
+
+Load training history from metrics.json or loss_history/*.json files.
+Returns Dict(basis_name => (train_losses, val_losses, step_losses)).
+Handles two formats:
+  - metrics.json history: flat arrays (train_losses, val_losses, step_train_losses)
+  - loss_history files: structured records (epoch_losses[].train_loss, step_losses[].loss)
+"""
+function _load_training_history(dataset_name::Symbol, results)
+    histories = Dict{String,NamedTuple}()
+    loss_dir = joinpath(RESULTS_DIR, string(dataset_name), "loss_history")
+
+    for basis_name in ["qft", "entangled_qft", "tebd", "mera"]
+        train_losses = Float64[]
+        val_losses = Float64[]
+        step_losses = Float64[]
+
+        # Try metrics.json history first
+        if haskey(results, basis_name) && haskey(results[basis_name], "history")
+            history = results[basis_name]["history"]
+            if haskey(history, "train_losses")
+                train_losses = Float64.(history["train_losses"])
+            end
+            if haskey(history, "val_losses")
+                val_losses = Float64.(history["val_losses"])
+            end
+            if haskey(history, "step_train_losses")
+                step_losses = Float64.(history["step_train_losses"])
+            end
+        end
+
+        # Fall back to loss_history file if metrics.json had no history
+        if isempty(train_losses)
+            loss_file = joinpath(loss_dir, "$(basis_name)_loss.json")
+            if isfile(loss_file)
+                loss_data = JSON3.read(read(loss_file, String))
+                if haskey(loss_data, :epoch_losses)
+                    for rec in loss_data[:epoch_losses]
+                        push!(train_losses, Float64(rec[:train_loss]))
+                        if haskey(rec, :val_loss)
+                            push!(val_losses, Float64(rec[:val_loss]))
+                        end
+                    end
+                end
+                if haskey(loss_data, :step_losses)
+                    for rec in loss_data[:step_losses]
+                        push!(step_losses, Float64(rec[:loss]))
+                    end
+                end
+            end
+        end
+
+        if !isempty(train_losses)
+            histories[basis_name] = (
+                train_losses = train_losses,
+                val_losses = val_losses,
+                step_losses = step_losses,
+            )
+        end
+    end
+
+    return histories
+end
+
 function generate_training_curves(all_results)
     for (dataset_name, results) in all_results
         plots_dir = joinpath(RESULTS_DIR, string(dataset_name), "plots")
         mkpath(plots_dir)
 
+        histories = _load_training_history(dataset_name, results)
+
+        if isempty(histories)
+            @warn "No training history found for $(DISPLAY_NAMES[dataset_name])"
+            continue
+        end
+
+        # --- Epoch-level training loss ---
         fig = Figure(size = (800, 500))
         ax = Axis(fig[1, 1];
             xlabel = "Epoch",
-            ylabel = "Validation Loss",
-            title = "Training Convergence — $(DISPLAY_NAMES[dataset_name])",
-            yscale = log10,
-        )
-
-        for basis_name in ["qft", "entangled_qft", "tebd", "mera"]
-            if haskey(results, basis_name) && haskey(results[basis_name], "history")
-                history = results[basis_name]["history"]
-                val_losses = Float64.(history["val_losses"])
-                if !isempty(val_losses)
-                    lines!(ax, 1:length(val_losses), val_losses;
-                        label = BASIS_DISPLAY_NAMES[basis_name],
-                        color = BASIS_COLORS[basis_name],
-                    )
-                end
-            end
-        end
-
-        axislegend(ax; position = :rt)
-        save(joinpath(plots_dir, "training_curves.png"), fig; px_per_unit = 2)
-        @info "Saved training curves for $(DISPLAY_NAMES[dataset_name])"
-
-        # Step-level loss curves (raw)
-        fig_steps = Figure(size = (1000, 500))
-        ax_steps = Axis(fig_steps[1, 1];
-            xlabel = "Optimization Step",
             ylabel = "Training Loss",
-            title = "Per-Step Training Loss — $(DISPLAY_NAMES[dataset_name])",
+            title = "Training Convergence — $(DISPLAY_NAMES[dataset_name])",
         )
-
+        has_data = false
         for basis_name in ["qft", "entangled_qft", "tebd", "mera"]
-            if haskey(results, basis_name) && haskey(results[basis_name], "history")
-                history = results[basis_name]["history"]
-                step_losses = Float64.(history["step_train_losses"])
-                if !isempty(step_losses)
-                    valid = step_losses .> 0
-                    if any(valid)
-                        lines!(ax_steps, (1:length(step_losses))[valid], step_losses[valid];
-                            label = BASIS_DISPLAY_NAMES[basis_name],
-                            color = BASIS_COLORS[basis_name],
-                        )
-                    end
-                end
-            end
+            haskey(histories, basis_name) || continue
+            tl = histories[basis_name].train_losses
+            isempty(tl) && continue
+            lines!(ax, 1:length(tl), tl;
+                label = BASIS_DISPLAY_NAMES[basis_name],
+                color = BASIS_COLORS[basis_name],
+            )
+            has_data = true
+        end
+        if has_data
+            axislegend(ax; position = :rt)
+            save(joinpath(plots_dir, "training_curves.png"), fig; px_per_unit = 2)
+            @info "Saved training curves for $(DISPLAY_NAMES[dataset_name])"
         end
 
-        axislegend(ax_steps; position = :rt)
-        save(joinpath(plots_dir, "step_training_losses.png"), fig_steps; px_per_unit = 2)
-        @info "Saved step-level training curves for $(DISPLAY_NAMES[dataset_name])"
-
-        # Step-level loss curves (normalized by k = 0.10 * img_size^2)
-        img_size = DATASET_CONFIGS[dataset_name].img_size
-        k = round(Int, 0.10 * img_size^2)
-
-        fig_norm = Figure(size = (1000, 500))
-        ax_norm = Axis(fig_norm[1, 1];
-            xlabel = "Optimization Step",
-            ylabel = "Training Loss / k",
-            title = "Normalized Per-Step Loss — $(DISPLAY_NAMES[dataset_name]) (k=$k)",
+        # --- Epoch-level validation loss ---
+        fig_val = Figure(size = (800, 500))
+        ax_val = Axis(fig_val[1, 1];
+            xlabel = "Epoch",
+            ylabel = "Validation Loss",
+            title = "Validation Convergence — $(DISPLAY_NAMES[dataset_name])",
         )
-
+        has_val = false
         for basis_name in ["qft", "entangled_qft", "tebd", "mera"]
-            if haskey(results, basis_name) && haskey(results[basis_name], "history")
-                history = results[basis_name]["history"]
-                step_losses = Float64.(history["step_train_losses"]) ./ k
-                if !isempty(step_losses)
-                    valid = step_losses .> 0
-                    if any(valid)
-                        lines!(ax_norm, (1:length(step_losses))[valid], step_losses[valid];
-                            label = BASIS_DISPLAY_NAMES[basis_name],
-                            color = BASIS_COLORS[basis_name],
-                        )
-                    end
-                end
-            end
+            haskey(histories, basis_name) || continue
+            vl = histories[basis_name].val_losses
+            isempty(vl) && continue
+            lines!(ax_val, 1:length(vl), vl;
+                label = BASIS_DISPLAY_NAMES[basis_name],
+                color = BASIS_COLORS[basis_name],
+            )
+            has_val = true
+        end
+        if has_val
+            axislegend(ax_val; position = :rt)
+            save(joinpath(plots_dir, "validation_curves.png"), fig_val; px_per_unit = 2)
+            @info "Saved validation curves for $(DISPLAY_NAMES[dataset_name])"
         end
 
-        axislegend(ax_norm; position = :rt)
-        save(joinpath(plots_dir, "step_training_losses_normalized.png"), fig_norm; px_per_unit = 2)
-        @info "Saved normalized step-level training curves for $(DISPLAY_NAMES[dataset_name])"
+        # --- Step-level loss curves (only if steps > epochs) ---
+        # Skip when step data has same length as epoch data (no real per-step granularity)
+        max_epochs = maximum(length(h.train_losses) for h in values(histories))
+        has_real_steps = any(
+            length(h.step_losses) > max_epochs
+            for h in values(histories)
+            if !isempty(h.step_losses)
+        )
+        if has_real_steps
+            fig_steps = Figure(size = (1000, 500))
+            ax_steps = Axis(fig_steps[1, 1];
+                xlabel = "Optimization Step",
+                ylabel = "Training Loss",
+                title = "Per-Step Training Loss — $(DISPLAY_NAMES[dataset_name])",
+            )
+            has_steps = false
+            for basis_name in ["qft", "entangled_qft", "tebd", "mera"]
+                haskey(histories, basis_name) || continue
+                sl = histories[basis_name].step_losses
+                length(sl) <= max_epochs && continue  # skip epoch-level data
+                valid = sl .> 0
+                any(valid) || continue
+                lines!(ax_steps, (1:length(sl))[valid], sl[valid];
+                    label = BASIS_DISPLAY_NAMES[basis_name],
+                    color = BASIS_COLORS[basis_name],
+                )
+                has_steps = true
+            end
+            if has_steps
+                axislegend(ax_steps; position = :rt)
+                save(joinpath(plots_dir, "step_training_losses.png"), fig_steps; px_per_unit = 2)
+                @info "Saved step-level training curves for $(DISPLAY_NAMES[dataset_name])"
+            end
+        end
     end
 end
 
@@ -210,9 +281,8 @@ function generate_reconstruction_grids(all_results)
         mkpath(plots_dir)
         output_dir = joinpath(RESULTS_DIR, string(dataset_name))
 
-        # Load first test image using the appropriate loader
+        # Load test images using the appropriate loader
         dataset_config = DATASET_CONFIGS[dataset_name]
-        # We need test images — load up to 5
         n_grid_images = 5
         test_images = try
             if dataset_name == :quickdraw
@@ -226,7 +296,7 @@ function generate_reconstruction_grids(all_results)
                 test
             end
         catch e
-            @warn "Could not load test image for $dataset_name: $e"
+            @warn "Could not load test images for $dataset_name: $e"
             continue
         end
 
@@ -239,44 +309,50 @@ function generate_reconstruction_grids(all_results)
             end
         end
 
-        # Filter to only bases that have trained models (+ fft)
         available_bases = [b for b in ["qft", "entangled_qft", "tebd", "mera"]
                            if haskey(trained_bases, b)]
-        push!(available_bases, "fft")
         push!(available_bases, "dct")
+        push!(available_bases, "fft")
 
         for (img_idx, sample_img) in enumerate(test_images)
-            basis_order = ["qft", "entangled_qft", "tebd", "mera", "fft", "dct"]
-
-            n_rows = 1 + length(available_bases)  # original + each available basis
+            n_rows = 1 + length(available_bases)  # original row + basis rows
             n_cols = length(KEEP_RATIOS)
-            cell_size = 180
+            cell_px = 200  # pixel size per cell
+            label_w = 120  # left label column width
+            header_h = 30  # top header row height
+            gap = 4
 
-            fig = Figure(size = (cell_size * n_cols + 80, cell_size * n_rows + 40);
-                figure_padding = 10)
+            fig_w = label_w + n_cols * cell_px + (n_cols - 1) * gap + 20
+            fig_h = header_h + n_rows * cell_px + (n_rows - 1) * gap + 20
 
-            # Column headers
+            fig = Figure(size = (fig_w, fig_h); figure_padding = 10)
+
+            # Column headers (row 0)
             for (j, ratio) in enumerate(KEEP_RATIOS)
-                Label(fig[0, j], "$(round(Int, ratio * 100))% kept"; fontsize = 14)
+                Label(fig[1, j + 1], "$(round(Int, ratio * 100))% kept";
+                    fontsize = 14, halign = :center)
             end
 
-            # Original row
-            Label(fig[1, 0], "Original"; fontsize = 12, rotation = pi / 2)
+            # Original row (row 1 in grid = position 2)
+            Label(fig[2, 1], "Original"; fontsize = 13, rotation = pi / 2,
+                halign = :center, valign = :center)
             for j in 1:n_cols
-                ax = Axis(fig[1, j]; aspect = 1)
+                ax = Axis(fig[2, j + 1]; aspect = DataAspect())
                 hidedecorations!(ax)
+                hidespines!(ax)
                 heatmap!(ax, rotr90(sample_img); colormap = :grays, colorrange = (0.0, 1.0))
             end
 
             # Basis rows
             for (i, basis_name) in enumerate(available_bases)
-                row = i + 1
-                Label(fig[row, 0], get(BASIS_DISPLAY_NAMES, basis_name, basis_name);
-                    fontsize = 12, rotation = pi / 2)
+                row = i + 2  # grid row (1=header, 2=original, 3+=bases)
+                Label(fig[row, 1], get(BASIS_DISPLAY_NAMES, basis_name, basis_name);
+                    fontsize = 13, rotation = pi / 2, halign = :center, valign = :center)
 
                 for (j, keep_ratio) in enumerate(KEEP_RATIOS)
-                    ax = Axis(fig[row, j]; aspect = 1)
+                    ax = Axis(fig[row, j + 1]; aspect = DataAspect())
                     hidedecorations!(ax)
+                    hidespines!(ax)
 
                     recovered = if basis_name == "fft"
                         fft_compress_recover(sample_img, keep_ratio)
@@ -295,15 +371,17 @@ function generate_reconstruction_grids(all_results)
                 end
             end
 
-            # Force uniform cell sizes
-            for row in 1:n_rows
-                rowsize!(fig.layout, row, CairoMakie.Fixed(cell_size))
+            # Uniform sizing: fixed cell sizes for all image rows/columns
+            rowsize!(fig.layout, 1, CairoMakie.Fixed(header_h))
+            for row in 2:(n_rows + 1)
+                rowsize!(fig.layout, row, CairoMakie.Fixed(cell_px))
             end
-            for col in 1:n_cols
-                colsize!(fig.layout, col, CairoMakie.Fixed(cell_size))
+            colsize!(fig.layout, 1, CairoMakie.Fixed(label_w))
+            for col in 2:(n_cols + 1)
+                colsize!(fig.layout, col, CairoMakie.Fixed(cell_px))
             end
-            colgap!(fig.layout, 5)
-            rowgap!(fig.layout, 5)
+            colgap!(fig.layout, gap)
+            rowgap!(fig.layout, gap)
 
             save(joinpath(plots_dir, "reconstruction_grid_$(img_idx).png"), fig; px_per_unit = 2)
             @info "Saved reconstruction grid $(img_idx) for $(DISPLAY_NAMES[dataset_name])"

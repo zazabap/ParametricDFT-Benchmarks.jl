@@ -1,0 +1,7 @@
+Basis,Quick Draw Time(s),DIV2K (8q) Time(s)
+QFT,0.0,3455.5
+Entangled QFT,0.0,2938.4
+TEBD,0.0,6930.3
+MERA,N/A,4360.3
+Classical FFT,0.1,2.3
+Classical DCT,0.2,2.2
