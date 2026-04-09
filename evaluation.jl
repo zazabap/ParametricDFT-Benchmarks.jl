@@ -201,7 +201,7 @@ function train_and_time(
             steps_per_image = preset.steps_per_image,
             validation_split = preset.validation_split,
             early_stopping_patience = preset.patience,
-            optimizer = preset.optimizer,
+            optimizer = preset.optimizer(lr=preset.lr),
             device = preset.device,
             batch_size = get(preset, :batch_size, 1),
             save_loss_path = save_loss_path,
