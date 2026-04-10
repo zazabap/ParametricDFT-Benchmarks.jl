@@ -39,6 +39,25 @@ Available run scripts: `run_quickdraw.jl`, `run_div2k.jl`, `run_clic.jl`.
 
 DIV2K and CLIC require manual dataset download — the scripts print instructions if data is missing.
 
+## Profiling GPU Training
+
+Use `profile_gpu_training.jl` to measure CPU/GPU speedup on a synthetic training
+set and, when `nsys` is available, collect a CUDA kernel-launch summary:
+
+```bash
+# Timing comparison plus Nsight Systems report
+julia --project=../.. profile_gpu_training.jl --gpu 1 --basis qft --m 5 --n 5 --train 16 --steps 10 --batch-size 8
+
+# Timing only, useful on machines without Nsight Systems
+julia --project=../.. profile_gpu_training.jl --no-nsys --gpu 1 --basis tebd --m 5 --n 5 --train 16 --steps 10 --batch-size 8
+```
+
+The script writes `results/profiles/gpu_training_profile_summary.json`. In the
+Nsight output, use the CUDA GPU Kernel Summary `Instances` column as the kernel
+launch count; a launch count that scales with the number of tiny 2x2 tensors is
+evidence that the remaining bottleneck is unbatched GPU work rather than raw
+floating-point throughput.
+
 ## Running All Presets in the Background
 
 The `run_all.sh` script runs smoke, moderate, and heavy sequentially, preserving results after each preset completes.
