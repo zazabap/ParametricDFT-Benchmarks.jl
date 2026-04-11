@@ -38,8 +38,8 @@ const OPTIMIZER_PRESETS = Dict(
 # ============================================================================
 
 const PROBLEM_SIZES = [
-    (dataset = :quickdraw, m = 5, n = 5, img_size = 32),
-    (dataset = :div2k,     m = 9, n = 9, img_size = 512),
+    (name="32x32",   m=5, n=5,  dataset=:quickdraw, img_size=32),
+    (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),
 ]
 
 # ============================================================================
@@ -63,32 +63,14 @@ const FAIRNESS_CONFIGS = [
 # Helper Functions
 # ============================================================================
 
-"""
-    load_dataset(dataset_sym, preset; seed=SEED)
-
-Load training and test images for the given dataset symbol using the preset
-parameters `n_train`, `n_test`, and `img_size` (derived from PROBLEM_SIZES).
-
-Returns `(train_images, test_images, test_labels)`.
-"""
-function load_dataset(dataset_sym::Symbol, preset; seed::Int = SEED)
-    cfg = first(filter(p -> p.dataset == dataset_sym, PROBLEM_SIZES))
-    if dataset_sym == :quickdraw
-        return load_quickdraw_dataset(;
-            n_train  = preset.n_train,
-            n_test   = preset.n_test,
-            img_size = cfg.img_size,
-            seed     = seed,
-        )
-    elseif dataset_sym == :div2k
-        return load_div2k_dataset(;
-            n_train  = preset.n_train,
-            n_test   = preset.n_test,
-            img_size = cfg.img_size,
-            seed     = seed,
-        )
+"""Load dataset by symbol. Returns (train_images, test_images, test_labels)."""
+function load_dataset(dataset::Symbol; n_train::Int, n_test::Int, img_size::Int, seed::Int=SEED)
+    if dataset == :quickdraw
+        return load_quickdraw_dataset(; n_train=n_train, n_test=n_test, img_size=img_size, seed=seed)
+    elseif dataset == :div2k
+        return load_div2k_dataset(; n_train=n_train, n_test=n_test, img_size=img_size, seed=seed)
     else
-        error("Unknown dataset: $dataset_sym. Supported: :quickdraw, :div2k")
+        error("Unknown dataset: $dataset")
     end
 end
 
