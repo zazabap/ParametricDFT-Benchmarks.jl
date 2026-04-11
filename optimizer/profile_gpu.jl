@@ -115,16 +115,19 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
     )
 end
 
-"""Sample GPU utilization and power over time. Returns dict with time-series arrays."""
-function sample_gpu_usage(duration_s::Int=30; interval_ms::Int=200)
+"""Sample GPU utilization and power over time for a specific GPU. Returns dict with time-series arrays."""
+function sample_gpu_usage(duration_s::Int=30; interval_ms::Int=200, gpu_id::Int=GPU_DEVICE)
     timestamps = Float64[]
     gpu_util_pct = Float64[]
     mem_util_pct = Float64[]
     power_watts = Float64[]
 
+    # Query specific GPU by index
+    gpu_flag = "-i $gpu_id"
+
     # Get power limit once
     power_limit = try
-        output = read(`nvidia-smi --query-gpu=power.limit --format=csv,noheader,nounits`, String)
+        output = read(`nvidia-smi -i $gpu_id --query-gpu=power.limit --format=csv,noheader,nounits`, String)
         parse(Float64, strip(output))
     catch
         NaN
@@ -133,13 +136,16 @@ function sample_gpu_usage(duration_s::Int=30; interval_ms::Int=200)
     start = time()
     while (time() - start) < duration_s
         try
-            output = read(`nvidia-smi --query-gpu=utilization.gpu,utilization.memory,power.draw --format=csv,noheader,nounits`, String)
+            output = read(`nvidia-smi -i $gpu_id --query-gpu=utilization.gpu,utilization.memory,power.draw --format=csv,noheader,nounits`, String)
             vals = split(strip(output), ",")
-            push!(timestamps, time() - start)
-            push!(gpu_util_pct, parse(Float64, strip(vals[1])))
-            push!(mem_util_pct, parse(Float64, strip(vals[2])))
-            push!(power_watts, parse(Float64, strip(vals[3])))
-        catch
+            if length(vals) >= 3
+                push!(timestamps, time() - start)
+                push!(gpu_util_pct, parse(Float64, strip(vals[1])))
+                push!(mem_util_pct, parse(Float64, strip(vals[2])))
+                push!(power_watts, parse(Float64, strip(vals[3])))
+            end
+        catch e
+            @warn "nvidia-smi sampling failed" exception=e
             break
         end
         sleep(interval_ms / 1000)
@@ -220,10 +226,13 @@ function main()
         ParametricDFT.optimize!(opt, copy.(sample_tensors), loss_fn, grad_fn; max_iter=1, tol=1e-12)
         CUDA.synchronize()
 
-        # Now spawn training — GPU compute starts immediately, no JIT delay
-        println("    Sampling nvidia-smi during $(steps * 4) GPU optimization steps...")
+        # Run enough steps to keep GPU busy for the full sampling window
+        # 32×32 steps are ~50ms, so need ~600 steps to fill 30s
+        # 512×512 steps are ~4s, so 10 steps = 40s
+        n_usage_steps = max(steps * 4, 600)
+        println("    Sampling nvidia-smi during $n_usage_steps GPU optimization steps...")
         training_task = Threads.@spawn begin
-            ParametricDFT.optimize!(opt, sample_tensors, loss_fn, grad_fn; max_iter=steps * 4, tol=1e-12)
+            ParametricDFT.optimize!(opt, sample_tensors, loss_fn, grad_fn; max_iter=n_usage_steps, tol=1e-12)
             CUDA.synchronize()
         end
         # Small delay to ensure training thread has started GPU kernels

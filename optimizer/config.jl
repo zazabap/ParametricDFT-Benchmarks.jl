@@ -42,7 +42,7 @@ const OPTIMIZER_PRESETS = Dict(
 
 const PROBLEM_SIZES = [
     (name="32x32",   m=5, n=5,  dataset=:quickdraw, img_size=32),
-    (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),
+    # (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),  # uncomment for full run
 ]
 
 # ============================================================================
