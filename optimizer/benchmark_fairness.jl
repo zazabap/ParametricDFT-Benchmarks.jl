@@ -57,6 +57,10 @@ function run_manopt_gd(m, n, train_images, steps)
         ManifoldDiff.RiemannianProjectionBackend(AutoZygote())
     )
 
+    # Warmup: 1 step to trigger JIT (excluded from timing)
+    Manopt.gradient_descent(M, f, grad_f, p0;
+        stopping_criterion=Manopt.StopAfterIteration(1))
+
     elapsed = @elapsed begin
         result = Manopt.gradient_descent(
             M, f, grad_f, p0;
@@ -73,6 +77,11 @@ end
 """Run PDFT optimize! for fair comparison."""
 function run_pdft_gd(m, n, train_images, steps, device)
     loss_fn, grad_fn, opt, tensors = setup_pdft(m, n, train_images, device, :gradient_descent)
+
+    # Warmup: 1 step to trigger JIT/CUDA kernel compilation (excluded from timing)
+    warmup_tensors = copy.(tensors)
+    ParametricDFT.optimize!(opt, warmup_tensors, loss_fn, grad_fn; max_iter=1, tol=1e-12)
+    device == :gpu && CUDA.synchronize()
 
     loss_trace = Float64[]
     elapsed = @elapsed begin
