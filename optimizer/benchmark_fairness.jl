@@ -120,6 +120,12 @@ function main()
         train_images, _, _ = data
 
         for cfg in FAIRNESS_CONFIGS
+            # Skip Manopt on large problems — it's per-image without batching, impractical for 512x512+
+            if cfg.framework == :manopt && ps.m + ps.n > 12
+                println("  $(cfg.label)          SKIP (too large for per-image Manopt)")
+                continue
+            end
+
             @printf("  %-20s ... ", cfg.label)
             flush(stdout)
 
