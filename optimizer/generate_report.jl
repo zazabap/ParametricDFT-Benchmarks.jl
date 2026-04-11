@@ -60,16 +60,20 @@ function plot_profile_phases(profile_data, output_dir)
     profiles = profile_data[:profiles]
     isempty(profiles) && return
 
-    # Group by problem size (32x32 vs 512x512)
-    groups = Dict{String, Vector{Tuple{String, Float64, Float64, Float64}}}()
+    # Group by problem size
+    # Each entry: (opt_name, fwd_ms, grad_ms, step_ms, gpu_allocs, memmgmt_pct)
+    groups = Dict{String, Vector{Tuple{String, Float64, Float64, Float64, Int, Float64}}}()
     for (label, profile) in profiles
         phases = profile[:phases]
         fwd = findfirst(p -> p[:name] == "forward_pass", phases)
         grad = findfirst(p -> p[:name] == "gradient", phases)
         full = findfirst(p -> p[:name] == "full_step", phases)
-        fwd_t = fwd !== nothing ? Float64(phases[fwd][:time_ms]) : 0.0
-        grad_t = grad !== nothing ? Float64(phases[grad][:time_ms]) : 0.0
-        step_t = full !== nothing ? Float64(phases[full][:time_ms]) : 0.0
+        _wt(p) = Float64(get(p, :wall_time_ms, get(p, :time_ms, 0.0)))
+        fwd_t = fwd !== nothing ? _wt(phases[fwd]) : 0.0
+        grad_t = grad !== nothing ? _wt(phases[grad]) : 0.0
+        step_t = full !== nothing ? _wt(phases[full]) : 0.0
+        allocs = full !== nothing ? Int(get(phases[full], :gpu_alloc_count, 0)) : 0
+        memmgmt = full !== nothing ? Float64(get(phases[full], :memmgmt_pct, 0.0)) : 0.0
 
         # Extract problem size from label (e.g. "32x32_adam_gpu" → "32x32")
         parts = split(string(label), "_")
@@ -77,11 +81,12 @@ function plot_profile_phases(profile_data, output_dir)
         opt_name = replace(join(parts[2:end], " "), "gpu" => "GPU")
 
         group = get!(groups, ps_name, [])
-        push!(group, (opt_name, fwd_t, grad_t, step_t))
+        push!(group, (opt_name, fwd_t, grad_t, step_t, allocs, memmgmt))
     end
 
-    # One subplot per problem size, side by side
     group_names = sort(collect(keys(groups)))
+
+    # Phase breakdown (GPU kernel time) — one subplot per problem size
     fig = Figure(size=(500 * length(group_names), 500))
     for (i, ps_name) in enumerate(group_names)
         entries = groups[ps_name]
@@ -89,14 +94,34 @@ function plot_profile_phases(profile_data, output_dir)
         fwd = [e[2] for e in entries]
         grad = [e[3] for e in entries]
         step = [e[4] for e in entries]
-        _plot_phase_group(fig[1, i], "Phase Breakdown — $ps_name", labels, fwd, grad, step)
+        _plot_phase_group(fig[1, i], "Phase Breakdown — $ps_name (GPU kernel time)", labels, fwd, grad, step)
     end
     save(joinpath(output_dir, "profile_phases.png"), fig)
 
-    # Time per step — also split by problem size
+    # GPU allocation count per step — shows kernel launch overhead
     fig2 = Figure(size=(500 * length(group_names), 500))
     for (i, ps_name) in enumerate(group_names)
-        entries_raw = [(string(k), Float64(v[:time_per_step_ms]))
+        entries = groups[ps_name]
+        labels = [e[1] for e in entries]
+        allocs = Float64[e[5] for e in entries]
+        memmgmt = [e[6] for e in entries]
+
+        ax = MakieAxis(fig2[1, i]; title="GPU Allocations Per Step — $ps_name",
+                  ylabel="Allocation Count", xticklabelrotation=π/6)
+        xs = 1:length(labels)
+        barplot!(ax, xs, allocs; color=:steelblue)
+        ax.xticks = (xs, labels)
+        # Add memmgmt % as text labels
+        for (j, (a, m)) in enumerate(zip(allocs, memmgmt))
+            text!(ax, j, a; text=@sprintf("%.1f%% mgmt", m), align=(:center, :bottom), fontsize=10)
+        end
+    end
+    save(joinpath(output_dir, "profile_gpu_allocs.png"), fig2)
+
+    # Time per step — split by problem size
+    fig3 = Figure(size=(500 * length(group_names), 500))
+    for (i, ps_name) in enumerate(group_names)
+        entries_raw = [(string(k), Float64(get(v, :wall_time_per_step_ms, get(v, :time_per_step_ms, 0.0))))
                        for (k, v) in profiles if startswith(string(k), ps_name)]
         labels = [replace(split(e[1], "_"; limit=2)[2], "_" => " ", "gpu" => "GPU") for e in entries_raw]
         vals = [e[2] for e in entries_raw]
@@ -108,11 +133,11 @@ function plot_profile_phases(profile_data, output_dir)
             display_vals = vals
             unit = "ms/step"
         end
-        ax = MakieAxis(fig2[1, i]; title="Time Per Step — $ps_name", ylabel=unit, xticklabelrotation=π/6)
+        ax = MakieAxis(fig3[1, i]; title="Time Per Step — $ps_name", ylabel=unit, xticklabelrotation=π/6)
         barplot!(ax, 1:length(display_vals), display_vals; color=:steelblue)
         ax.xticks = (1:length(labels), labels)
     end
-    save(joinpath(output_dir, "profile_time_per_step.png"), fig2)
+    save(joinpath(output_dir, "profile_time_per_step.png"), fig3)
 end
 
 function plot_gpu_utilization(profile_data, output_dir)
@@ -295,25 +320,30 @@ function generate_markdown(profile_data, fairness_data, scaling_data)
     if profile_data !== nothing
         println(io, "## GPU Profiling")
         println(io, "")
-        println(io, "| Config | Time/Step (ms) | Forward (ms) | Gradient (ms) | Full Step (ms) |")
-        println(io, "|--------|---------------|-------------|--------------|---------------|")
+        println(io, "| Config | ms/step | GPU allocs/step | Mem Mgmt (%) | Forward (ms) | Gradient (ms) | Full Step (ms) |")
+        println(io, "|--------|---------|----------------|-------------|-------------|--------------|---------------|")
         for (label, profile) in profile_data[:profiles]
             phases = profile[:phases]
             fwd = findfirst(p -> p[:name] == "forward_pass", phases)
             grad = findfirst(p -> p[:name] == "gradient", phases)
             full = findfirst(p -> p[:name] == "full_step", phases)
-            @printf(io, "| %s | %.1f | %.1f | %.1f | %.1f |\n",
-                    label,
-                    profile[:time_per_step_ms],
-                    fwd !== nothing ? phases[fwd][:time_ms] : NaN,
-                    grad !== nothing ? phases[grad][:time_ms] : NaN,
-                    full !== nothing ? phases[full][:time_ms] : NaN)
+            _wt(p) = Float64(get(p, :wall_time_ms, get(p, :time_ms, NaN)))
+            wall_per_step = Float64(get(profile, :wall_time_per_step_ms, get(profile, :time_per_step_ms, NaN)))
+            allocs_per_step = safe_float(get(profile, :gpu_allocs_per_step, NaN))
+            memmgmt = safe_float(get(profile, :memmgmt_pct, NaN))
+            @printf(io, "| %s | %.1f | %.0f | %.1f | %.1f | %.1f | %.1f |\n",
+                    label, wall_per_step, allocs_per_step, memmgmt,
+                    fwd !== nothing ? _wt(phases[fwd]) : NaN,
+                    grad !== nothing ? _wt(phases[grad]) : NaN,
+                    full !== nothing ? _wt(phases[full]) : NaN)
         end
         println(io, "")
-        if haskey(profile_data, :gpu_power) && profile_data[:gpu_power][:available]
-            gp = profile_data[:gpu_power]
-            @printf(io, "GPU Power: %.0fW avg / %.0fW limit (%.0f%% utilization)\n\n",
-                    gp[:mean_watts], gp[:power_limit_watts], gp[:utilization_pct])
+        if haskey(profile_data, :gpu_usage) && get(profile_data[:gpu_usage], :available, false)
+            gu = profile_data[:gpu_usage]
+            @printf(io, "GPU Utilization: %.0f%% compute | %.0f%% memory bus | Power: %.0fW / %.0fW (%.0f%%)\n\n",
+                    safe_float(gu[:mean_gpu_util]), safe_float(gu[:mean_mem_util]),
+                    safe_float(gu[:mean_power]), safe_float(gu[:power_limit_watts]),
+                    safe_float(gu[:power_utilization_pct]))
         end
     end
 

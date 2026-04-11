@@ -20,32 +20,31 @@ function profile_phase(name, fn)
     fn()
     CUDA.synchronize()
 
-    # GPU-timed run
-    t = CUDA.@elapsed begin
+    # CUDA.@timed captures everything: time, GPU allocs, mem management
+    stats = CUDA.@timed begin
         fn()
         CUDA.synchronize()
     end
 
-    # CUDA.@time run for kernel stats (captures to stdout, we also record the timing)
-    println("    CUDA.@time for $name:")
-    print("      ")
-    CUDA.@time begin
-        fn()
-        CUDA.synchronize()
-    end
+    wall_time = stats.time
+    gpu_allocs = stats.gpu_memstats.alloc_count
+    gpu_bytes = stats.gpu_memstats.alloc_bytes
+    gpu_memtime_ms = stats.gpu_memtime * 1000
+    cpu_allocs = stats.cpu_gcstats.malloc + stats.cpu_gcstats.realloc + stats.cpu_gcstats.poolalloc
+    memmgmt_pct = wall_time > 0 ? stats.gpu_memtime / wall_time * 100 : 0.0
 
-    return (name=name, time_ms=t * 1000)
-end
+    @printf("    %-20s  %.1f ms | %d GPU allocs (%.1f MiB) | %d CPU allocs | %.1f%% mem mgmt\n",
+            name, wall_time * 1000, gpu_allocs, gpu_bytes / 1e6, cpu_allocs, memmgmt_pct)
 
-function count_kernel_launches(loss_fn, grad_fn, opt, tensors, steps)
-    # Run a few steps inside CUDA profiler to count launches
-    CUDA.@profile begin
-        ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn;
-                                 max_iter=steps, tol=1e-12)
-    end
-    # Note: actual kernel count extraction requires Nsight Systems external tool.
-    # This block enables profiling so nsys can capture it.
-    # We measure wall-clock time per step as a proxy.
+    return (
+        name=name,
+        wall_time_ms=wall_time * 1000,
+        gpu_alloc_count=gpu_allocs,
+        gpu_alloc_mib=gpu_bytes / (1024^2),
+        cpu_alloc_count=cpu_allocs,
+        memmgmt_ms=gpu_memtime_ms,
+        memmgmt_pct=memmgmt_pct,
+    )
 end
 
 function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
@@ -86,29 +85,40 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
                 gpu_mem["used_bytes"] / 1e6, gpu_mem["total_bytes"] / 1e6, gpu_mem["used_pct"])
     end
 
-    # Multi-step timing (amortized)
+    # Multi-step timing with full stats
     println("    Timing $steps steps...")
     loss_trace_full = Float64[]
-    elapsed = @elapsed begin
+
+    multi_stats = CUDA.@timed begin
         ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
                                  max_iter=steps, tol=1e-12, loss_trace=loss_trace_full)
-        device == :gpu && CUDA.synchronize()
-    end
-
-    # CUDA.@time for the multi-step run
-    println("    CUDA.@time for $steps steps:")
-    print("      ")
-    CUDA.@time begin
-        ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
-                                 max_iter=steps, tol=1e-12)
         CUDA.synchronize()
     end
 
+    wall_elapsed = multi_stats.time
+    total_gpu_allocs = multi_stats.gpu_memstats.alloc_count
+    total_memmgmt_ms = multi_stats.gpu_memtime * 1000
+    memmgmt_pct = wall_elapsed > 0 ? multi_stats.gpu_memtime / wall_elapsed * 100 : 0.0
+
+    @printf("    %d steps: %.1f ms total | %d GPU allocs (%.0f/step) | %.1f%% mem mgmt\n",
+            steps, wall_elapsed * 1000, total_gpu_allocs, total_gpu_allocs / steps, memmgmt_pct)
+
     return Dict(
-        "phases" => [Dict("name" => p.name, "time_ms" => p.time_ms) for p in phases],
+        "phases" => [Dict(
+            "name" => p.name,
+            "wall_time_ms" => p.wall_time_ms,
+            "gpu_alloc_count" => p.gpu_alloc_count,
+            "gpu_alloc_mib" => p.gpu_alloc_mib,
+            "cpu_alloc_count" => p.cpu_alloc_count,
+            "memmgmt_ms" => p.memmgmt_ms,
+            "memmgmt_pct" => p.memmgmt_pct,
+        ) for p in phases],
         "total_steps" => steps,
-        "total_time_s" => elapsed,
-        "time_per_step_ms" => (elapsed / steps) * 1000,
+        "wall_time_s" => wall_elapsed,
+        "wall_time_per_step_ms" => (wall_elapsed / steps) * 1000,
+        "gpu_allocs_per_step" => total_gpu_allocs / steps,
+        "gpu_allocs_total" => total_gpu_allocs,
+        "memmgmt_pct" => memmgmt_pct,
         "loss_start" => isempty(loss_trace_full) ? NaN : first(loss_trace_full),
         "loss_end" => isempty(loss_trace_full) ? NaN : last(loss_trace_full),
         "gpu_memory" => gpu_mem,
@@ -260,10 +270,11 @@ function main()
     println("  Profiling Summary")
     println("=" ^ 70)
     for (label, profile) in results["profiles"]
-        @printf("  %-30s  %6.1f ms/step  (%.1fs total for %d steps)\n",
-                label, profile["time_per_step_ms"], profile["total_time_s"], profile["total_steps"])
+        @printf("  %-30s  %.1f ms/step | %.0f GPU allocs/step | %.1f%% mem mgmt\n",
+                label, profile["wall_time_per_step_ms"], profile["gpu_allocs_per_step"], profile["memmgmt_pct"])
         for phase in profile["phases"]
-            @printf("    %-24s  %6.2f ms\n", phase["name"], phase["time_ms"])
+            @printf("    %-20s  %6.1f ms | %4d GPU allocs | %.1f%% mem mgmt\n",
+                    phase["name"], phase["wall_time_ms"], phase["gpu_alloc_count"], phase["memmgmt_pct"])
         end
     end
     gpu_usage = results["gpu_usage"]
