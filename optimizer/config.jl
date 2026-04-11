@@ -14,6 +14,8 @@ using JSON3
 using Dates
 using Zygote
 
+# DATA_DIR must be defined before including data_loading.jl (it references DATA_DIR)
+const DATA_DIR = joinpath(@__DIR__, "..", "data")
 include("../data_loading.jl")
 
 # ============================================================================
