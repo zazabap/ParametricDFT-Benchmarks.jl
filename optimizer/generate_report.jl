@@ -34,80 +34,84 @@ safe_float(x) = x === nothing ? NaN : Float64(x)
 # Plot Generation
 # ============================================================================
 
+function _plot_phase_group(fig_pos, title, labels, fwd_ms, grad_ms, step_ms)
+    max_t = maximum(step_ms)
+    if max_t >= 1000
+        fwd_d, grad_d, step_d = fwd_ms ./ 1000, grad_ms ./ 1000, step_ms ./ 1000
+        unit = "Time (s)"
+    else
+        fwd_d, grad_d, step_d = fwd_ms, grad_ms, step_ms
+        unit = "Time (ms)"
+    end
+
+    ax = MakieAxis(fig_pos; title=title, ylabel=unit, xticklabelrotation=π/6)
+    xs = 1:length(labels)
+    w = 0.25
+    barplot!(ax, xs .- w, fwd_d; width=w, color=:steelblue, label="Forward")
+    barplot!(ax, xs, grad_d; width=w, color=:salmon, label="Gradient")
+    barplot!(ax, xs .+ w, step_d; width=w, color=:seagreen, label="Full Step")
+    ax.xticks = (xs, labels)
+    axislegend(ax; position=:lt)
+    return ax
+end
+
 function plot_profile_phases(profile_data, output_dir)
     profile_data === nothing && return
     profiles = profile_data[:profiles]
     isempty(profiles) && return
 
-    # Bar chart: per-phase timing breakdown for each config
-    labels = String[]
-    fwd_times = Float64[]
-    grad_times = Float64[]
-    step_times = Float64[]
-
+    # Group by problem size (32x32 vs 512x512)
+    groups = Dict{String, Vector{Tuple{String, Float64, Float64, Float64}}}()
     for (label, profile) in profiles
-        push!(labels, replace(string(label), "_" => "\n"))
         phases = profile[:phases]
         fwd = findfirst(p -> p[:name] == "forward_pass", phases)
         grad = findfirst(p -> p[:name] == "gradient", phases)
         full = findfirst(p -> p[:name] == "full_step", phases)
-        push!(fwd_times, fwd !== nothing ? phases[fwd][:time_ms] : 0.0)
-        push!(grad_times, grad !== nothing ? phases[grad][:time_ms] : 0.0)
-        push!(step_times, full !== nothing ? phases[full][:time_ms] : 0.0)
+        fwd_t = fwd !== nothing ? Float64(phases[fwd][:time_ms]) : 0.0
+        grad_t = grad !== nothing ? Float64(phases[grad][:time_ms]) : 0.0
+        step_t = full !== nothing ? Float64(phases[full][:time_ms]) : 0.0
+
+        # Extract problem size from label (e.g. "32x32_adam_gpu" → "32x32")
+        parts = split(string(label), "_")
+        ps_name = string(parts[1])
+        opt_name = replace(join(parts[2:end], " "), "gpu" => "GPU")
+
+        group = get!(groups, ps_name, [])
+        push!(group, (opt_name, fwd_t, grad_t, step_t))
     end
 
-    isempty(labels) && return
-
-    # Choose unit
-    max_t = maximum(step_times)
-    if max_t >= 1000
-        fwd_display = fwd_times ./ 1000
-        grad_display = grad_times ./ 1000
-        step_display = step_times ./ 1000
-        unit = "Time (s)"
-    else
-        fwd_display = fwd_times
-        grad_display = grad_times
-        step_display = step_times
-        unit = "Time (ms)"
+    # One subplot per problem size, side by side
+    group_names = sort(collect(keys(groups)))
+    fig = Figure(size=(500 * length(group_names), 500))
+    for (i, ps_name) in enumerate(group_names)
+        entries = groups[ps_name]
+        labels = [e[1] for e in entries]
+        fwd = [e[2] for e in entries]
+        grad = [e[3] for e in entries]
+        step = [e[4] for e in entries]
+        _plot_phase_group(fig[1, i], "Phase Breakdown — $ps_name", labels, fwd, grad, step)
     end
-
-    fig = Figure(size=(900, 500))
-    ax = MakieAxis(fig[1, 1]; title="GPU Per-Phase Timing Breakdown",
-              ylabel=unit, xticklabelrotation=π/6)
-
-    xs = 1:length(labels)
-    w = 0.25
-    barplot!(ax, xs .- w, fwd_display; width=w, color=:steelblue, label="Forward")
-    barplot!(ax, xs, grad_display; width=w, color=:salmon, label="Gradient")
-    barplot!(ax, xs .+ w, step_display; width=w, color=:seagreen, label="Full Step")
-    ax.xticks = (xs, labels)
-    axislegend(ax; position=:lt)
     save(joinpath(output_dir, "profile_phases.png"), fig)
 
-    # Time per step chart
-    step_ms = Float64[]
-    step_labels = String[]
-    for (label, profile) in profiles
-        push!(step_labels, replace(string(label), "_" => "\n"))
-        push!(step_ms, profile[:time_per_step_ms])
+    # Time per step — also split by problem size
+    fig2 = Figure(size=(500 * length(group_names), 500))
+    for (i, ps_name) in enumerate(group_names)
+        entries_raw = [(string(k), Float64(v[:time_per_step_ms]))
+                       for (k, v) in profiles if startswith(string(k), ps_name)]
+        labels = [replace(split(e[1], "_"; limit=2)[2], "_" => " ", "gpu" => "GPU") for e in entries_raw]
+        vals = [e[2] for e in entries_raw]
+        max_t = maximum(vals)
+        if max_t >= 1000
+            display_vals = vals ./ 1000
+            unit = "s/step"
+        else
+            display_vals = vals
+            unit = "ms/step"
+        end
+        ax = MakieAxis(fig2[1, i]; title="Time Per Step — $ps_name", ylabel=unit, xticklabelrotation=π/6)
+        barplot!(ax, 1:length(display_vals), display_vals; color=:steelblue)
+        ax.xticks = (1:length(labels), labels)
     end
-
-    # Choose unit
-    max_t = maximum(step_ms)
-    if max_t >= 1000
-        display_vals = step_ms ./ 1000
-        unit = "s/step"
-    else
-        display_vals = step_ms
-        unit = "ms/step"
-    end
-
-    fig2 = Figure(size=(800, 500))
-    ax2 = MakieAxis(fig2[1, 1]; title="GPU Time Per Optimizer Step",
-               ylabel=unit, xticklabelrotation=π/6)
-    barplot!(ax2, 1:length(display_vals), display_vals; color=:steelblue)
-    ax2.xticks = (1:length(step_labels), step_labels)
     save(joinpath(output_dir, "profile_time_per_step.png"), fig2)
 end
 

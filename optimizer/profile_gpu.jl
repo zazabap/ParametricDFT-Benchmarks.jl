@@ -214,17 +214,20 @@ function main()
     end
     if sample_data !== nothing
         sample_train, _, _ = sample_data
-        println("    Running $(sample_ps.name) GD on GPU while sampling nvidia-smi...")
-        # Launch training in background thread, sample GPU usage in main thread
+        println("    Setting up $(sample_ps.name) GD on GPU...")
+        # Setup and warmup in main thread FIRST (JIT + einsum optimization)
+        loss_fn, grad_fn, opt, sample_tensors = setup_pdft(sample_ps.m, sample_ps.n, sample_train, :gpu, :gradient_descent)
+        ParametricDFT.optimize!(opt, copy.(sample_tensors), loss_fn, grad_fn; max_iter=1, tol=1e-12)
+        CUDA.synchronize()
+
+        # Now spawn training — GPU compute starts immediately, no JIT delay
+        println("    Sampling nvidia-smi during $(steps * 4) GPU optimization steps...")
         training_task = Threads.@spawn begin
-            loss_fn, grad_fn, opt, tensors = setup_pdft(sample_ps.m, sample_ps.n, sample_train, :gpu, :gradient_descent)
-            # Warmup
-            ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn; max_iter=1, tol=1e-12)
-            CUDA.synchronize()
-            # Actual run
-            ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn; max_iter=steps * 2, tol=1e-12)
+            ParametricDFT.optimize!(opt, sample_tensors, loss_fn, grad_fn; max_iter=steps * 4, tol=1e-12)
             CUDA.synchronize()
         end
+        # Small delay to ensure training thread has started GPU kernels
+        sleep(0.5)
         gpu_usage = sample_gpu_usage(30; interval_ms=200)
         wait(training_task)
         results["gpu_usage"] = gpu_usage
