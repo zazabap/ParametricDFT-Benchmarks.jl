@@ -10,8 +10,6 @@
 
 include(joinpath(@__DIR__, "config.jl"))
 
-import Zygote
-
 const WARMUP_STEPS = 3
 const PROFILE_STEPS = 5
 
@@ -131,9 +129,6 @@ function sample_gpu_usage(duration_s::Int=30; interval_ms::Int=200, gpu_id::Int=
     gpu_util_pct = Float64[]
     mem_util_pct = Float64[]
     power_watts = Float64[]
-
-    # Query specific GPU by index
-    gpu_flag = "-i $gpu_id"
 
     # Get power limit once
     power_limit = try

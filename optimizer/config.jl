@@ -42,7 +42,7 @@ const OPTIMIZER_PRESETS = Dict(
 
 const PROBLEM_SIZES = [
     (name="32x32",   m=5, n=5,  dataset=:quickdraw, img_size=32),
-    # (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),  # uncomment for full run
+    (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),
 ]
 
 # ============================================================================
@@ -99,12 +99,7 @@ function parse_preset(args=ARGS)
     return OPTIMIZER_PRESETS[preset_name], preset_name
 end
 
-"""
-    init_gpu(; device_id=GPU_DEVICE)
-
-Initialize CUDA GPU and return the device symbol. Falls back to `:cpu` if CUDA
-is not available.
-"""
+"""Initialize CUDA GPU. Asserts GPU is functional."""
 function init_gpu()
     CUDA.device!(GPU_DEVICE)
     @assert CUDA.functional() "GPU $GPU_DEVICE required"

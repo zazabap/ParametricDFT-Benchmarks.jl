@@ -13,7 +13,6 @@ include(joinpath(@__DIR__, "config.jl"))
 using Manopt, Manifolds, ManifoldDiff
 using RecursiveArrayTools: ArrayPartition
 using ADTypes: AutoZygote
-import Zygote
 
 # ============================================================================
 # Manopt Helpers

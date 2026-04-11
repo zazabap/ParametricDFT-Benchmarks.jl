@@ -10,8 +10,6 @@
 
 include(joinpath(@__DIR__, "config.jl"))
 
-import Zygote
-
 function run_scaling(m, n, train_images, steps, optimizer_sym, device)
     loss_fn, grad_fn, opt, tensors = setup_pdft(m, n, train_images, device, optimizer_sym)
 

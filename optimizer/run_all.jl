@@ -39,13 +39,8 @@ function main()
 
         script_path = joinpath(scripts_dir, script)
         t = @elapsed begin
-            # Run each script as a subprocess so they get clean Julia state
-            cmd = `$(Base.julia_cmd()) --project=$(scripts_dir) $script_path $preset_arg`
-            # generate_report.jl takes no preset arg
-            if script == "generate_report.jl"
-                cmd = `$(Base.julia_cmd()) --project=$(scripts_dir) $script_path`
-            end
-            run(cmd)
+            args = script == "generate_report.jl" ? [] : [preset_arg]
+            run(`$(Base.julia_cmd()) --project=$(scripts_dir) $script_path $args`)
         end
 
         @printf("  [%s] Completed in %.0fs\n", name, t)

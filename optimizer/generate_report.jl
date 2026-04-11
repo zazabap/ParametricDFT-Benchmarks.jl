@@ -75,10 +75,17 @@ function plot_profile_phases(profile_data, output_dir)
         allocs = full !== nothing ? Int(get(phases[full], :gpu_alloc_count, 0)) : 0
         memmgmt = full !== nothing ? Float64(get(phases[full], :memmgmt_pct, 0.0)) : 0.0
 
-        # Extract problem size from label (e.g. "32x32_adam_gpu" → "32x32")
-        parts = split(string(label), "_")
-        ps_name = string(parts[1])
-        opt_name = replace(join(parts[2:end], " "), "gpu" => "GPU")
+        # Extract problem size from label (e.g. "32x32_gradient_descent_gpu" → "32x32")
+        label_str = string(label)
+        # Problem size is everything before the first known optimizer keyword
+        ps_name = if startswith(label_str, "512x512")
+            "512x512"
+        elseif startswith(label_str, "32x32")
+            "32x32"
+        else
+            split(label_str, "_")[1]
+        end
+        opt_name = replace(label_str[length(ps_name)+2:end], "_" => " ", "gpu" => "GPU")
 
         group = get!(groups, ps_name, [])
         push!(group, (opt_name, fwd_t, grad_t, step_t, allocs, memmgmt))
@@ -94,7 +101,7 @@ function plot_profile_phases(profile_data, output_dir)
         fwd = [e[2] for e in entries]
         grad = [e[3] for e in entries]
         step = [e[4] for e in entries]
-        _plot_phase_group(fig[1, i], "Phase Breakdown — $ps_name (GPU kernel time)", labels, fwd, grad, step)
+        _plot_phase_group(fig[1, i], "Phase Breakdown — $ps_name", labels, fwd, grad, step)
     end
     save(joinpath(output_dir, "profile_phases.png"), fig)
 
@@ -123,7 +130,7 @@ function plot_profile_phases(profile_data, output_dir)
     for (i, ps_name) in enumerate(group_names)
         entries_raw = [(string(k), Float64(get(v, :wall_time_per_step_ms, get(v, :time_per_step_ms, 0.0))))
                        for (k, v) in profiles if startswith(string(k), ps_name)]
-        labels = [replace(split(e[1], "_"; limit=2)[2], "_" => " ", "gpu" => "GPU") for e in entries_raw]
+        labels = [replace(e[1][length(ps_name)+2:end], "_" => " ", "gpu" => "GPU") for e in entries_raw]
         vals = [e[2] for e in entries_raw]
         max_t = maximum(vals)
         if max_t >= 1000
