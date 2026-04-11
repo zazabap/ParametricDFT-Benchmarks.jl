@@ -153,15 +153,29 @@ function setup_pdft(m, n, train_images, device, optimizer_sym::Symbol)
     return loss_fn, grad_fn, opt, tensors
 end
 
-"""Recursively replace NaN/Inf with null-safe values for JSON serialization."""
-function _sanitize_for_json(x::AbstractFloat)
-    isnan(x) || isinf(x) ? nothing : x
-end
-_sanitize_for_json(x::AbstractVector) = [_sanitize_for_json(v) for v in x]
-_sanitize_for_json(x::AbstractDict) = Dict(k => _sanitize_for_json(v) for (k, v) in x)
-_sanitize_for_json(x) = x
+"""Replace NaN/Inf with 0.0 for JSON serialization. Applied to scalar floats only."""
+_json_safe(x::AbstractFloat) = isnan(x) || isinf(x) ? 0.0 : x
+_json_safe(x) = x
 
-"""Save dict as pretty JSON. NaN/Inf values are converted to null."""
+"""Recursively sanitize a dict for JSON (NaN/Inf → 0.0 in scalar values only, arrays left intact)."""
+function _sanitize_for_json(d::AbstractDict)
+    result = Dict{String, Any}()
+    for (k, v) in d
+        key = string(k)
+        if v isa AbstractDict
+            result[key] = _sanitize_for_json(v)
+        elseif v isa AbstractVector{<:AbstractDict}
+            result[key] = [_sanitize_for_json(item) for item in v]
+        elseif v isa AbstractFloat
+            result[key] = _json_safe(v)
+        else
+            result[key] = v
+        end
+    end
+    return result
+end
+
+"""Save dict as pretty JSON. NaN/Inf scalar values are converted to 0.0."""
 function save_json(path, data)
     mkpath(dirname(path))
     open(path, "w") do io

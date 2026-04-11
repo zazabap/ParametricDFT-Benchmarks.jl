@@ -24,6 +24,12 @@ function load_json(path)
     return JSON3.read(read(path, String))
 end
 
+"""Safely convert a JSON array to Float64, replacing nothing/null with NaN."""
+safe_float_vec(v) = Float64[x === nothing ? NaN : Float64(x) for x in v]
+
+"""Safely convert a scalar, replacing nothing with NaN."""
+safe_float(x) = x === nothing ? NaN : Float64(x)
+
 # ============================================================================
 # Plot Generation
 # ============================================================================
@@ -111,11 +117,14 @@ function plot_gpu_utilization(profile_data, output_dir)
     gpu_usage === nothing && return
     get(gpu_usage, :available, false) || return
 
-    ts = Float64.(gpu_usage[:timestamps_s])
-    gpu_pct = Float64.(gpu_usage[:gpu_util_pct])
-    mem_pct = Float64.(gpu_usage[:mem_util_pct])
-    power = Float64.(gpu_usage[:power_watts])
-    power_limit = Float64(gpu_usage[:power_limit_watts])
+    ts = safe_float_vec(gpu_usage[:timestamps_s])
+    gpu_pct = safe_float_vec(gpu_usage[:gpu_util_pct])
+    mem_pct = safe_float_vec(gpu_usage[:mem_util_pct])
+    power = safe_float_vec(gpu_usage[:power_watts])
+    power_limit = safe_float(gpu_usage[:power_limit_watts])
+
+    # Skip plotting if no valid data
+    all(isnan, ts) && return
 
     # GPU utilization + memory utilization over time
     fig = Figure(size=(900, 500))
@@ -156,7 +165,7 @@ function plot_fairness_convergence(fairness_data, output_dir)
         styles = Dict("Manopt-GD" => :solid, "PDFT-GD (cpu)" => :dash, "PDFT-GD (gpu)" => :solid)
 
         for b in entries
-            trace = Float64.(b[:loss_trace])
+            trace = safe_float_vec(b[:loss_trace])
             isempty(trace) && continue
             lines!(ax, 1:length(trace), trace;
                    label=b[:label], color=get(colors, b[:label], :gray),
@@ -252,7 +261,7 @@ function plot_scaling_convergence(scaling_data, output_dir)
                        "PDFT-Adam (cpu)" => :dash, "PDFT-Adam (gpu)" => :solid)
 
         for b in entries
-            trace = Float64.(b[:loss_trace])
+            trace = safe_float_vec(b[:loss_trace])
             isempty(trace) && continue
             lines!(ax, 1:length(trace), trace;
                    label=b[:label], color=get(colors, b[:label], :gray),
