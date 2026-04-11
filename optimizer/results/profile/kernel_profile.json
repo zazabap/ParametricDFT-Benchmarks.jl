@@ -1,0 +1,118 @@
+{
+    "gpu_power": {
+        "available": false
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "date": "2026-04-11 07:17",
+    "preset": "smoke",
+    "profiles": {
+        "512x512_gradient_descent_gpu": {
+            "loss_start": 1575.6448655701,
+            "phases": [
+                {
+                    "name": "forward_pass",
+                    "time_ms": 73.311104
+                },
+                {
+                    "name": "gradient",
+                    "time_ms": 1419.0592
+                },
+                {
+                    "name": "full_step",
+                    "time_ms": 2113.287
+                }
+            ],
+            "time_per_step_ms": 2235.8616288,
+            "gpu_memory": {
+                "total_bytes": 25293946880,
+                "used_pct": 63.23353758857898,
+                "free_bytes": 9299689472,
+                "used_bytes": 15994257408
+            },
+            "total_time_s": 11.179308144,
+            "total_steps": 5,
+            "loss_end": 1575.3358722942535
+        },
+        "32x32_adam_gpu": {
+            "loss_start": 32.26309076038806,
+            "phases": [
+                {
+                    "name": "forward_pass",
+                    "time_ms": 5.226432
+                },
+                {
+                    "name": "gradient",
+                    "time_ms": 31.469763
+                },
+                {
+                    "name": "full_step",
+                    "time_ms": 44.011646
+                }
+            ],
+            "time_per_step_ms": 42.685287599999995,
+            "gpu_memory": {
+                "total_bytes": 25293946880,
+                "used_pct": 2.865878146416033,
+                "free_bytes": 24569053184,
+                "used_bytes": 724893696
+            },
+            "total_time_s": 0.213426438,
+            "total_steps": 5,
+            "loss_end": 32.19255947274892
+        },
+        "512x512_adam_gpu": {
+            "loss_start": 1575.4642135138276,
+            "phases": [
+                {
+                    "name": "forward_pass",
+                    "time_ms": 73.87651
+                },
+                {
+                    "name": "gradient",
+                    "time_ms": 1428.6027
+                },
+                {
+                    "name": "full_step",
+                    "time_ms": 1522.2201
+                }
+            ],
+            "time_per_step_ms": 1511.5085130000002,
+            "gpu_memory": {
+                "total_bytes": 25293946880,
+                "used_pct": 63.23353758857898,
+                "free_bytes": 9299689472,
+                "used_bytes": 15994257408
+            },
+            "total_time_s": 7.557542565,
+            "total_steps": 5,
+            "loss_end": 1574.2852387929408
+        },
+        "32x32_gradient_descent_gpu": {
+            "loss_start": 32.130526046976584,
+            "phases": [
+                {
+                    "name": "forward_pass",
+                    "time_ms": 5.463712
+                },
+                {
+                    "name": "gradient",
+                    "time_ms": 32.22016
+                },
+                {
+                    "name": "full_step",
+                    "time_ms": 49.640545
+                }
+            ],
+            "time_per_step_ms": 45.3525682,
+            "gpu_memory": {
+                "total_bytes": 25293946880,
+                "used_pct": 2.069930432304284,
+                "free_bytes": 24770379776,
+                "used_bytes": 523567104
+            },
+            "total_time_s": 0.226762841,
+            "total_steps": 5,
+            "loss_end": 31.763243480690004
+        }
+    }
+}

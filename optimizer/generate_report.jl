@@ -12,6 +12,8 @@
 include(joinpath(@__DIR__, "config.jl"))
 
 using CairoMakie
+# Resolve name collision: Axis is exported by both CairoMakie and Images (via data_loading.jl)
+const MakieAxis = CairoMakie.Axis
 
 # ============================================================================
 # JSON Loading
@@ -52,7 +54,7 @@ function plot_profile_phases(profile_data, output_dir)
 
     # Stacked-style grouped bar chart
     fig = Figure(size=(900, 500))
-    ax = Axis(fig[1, 1]; title="GPU Per-Phase Timing Breakdown",
+    ax = MakieAxis(fig[1, 1]; title="GPU Per-Phase Timing Breakdown",
               ylabel="Time (ms)", xticklabelrotation=π/6)
 
     xs = 1:length(labels)
@@ -73,7 +75,7 @@ function plot_profile_phases(profile_data, output_dir)
     end
 
     fig2 = Figure(size=(800, 500))
-    ax2 = Axis(fig2[1, 1]; title="GPU Time Per Optimizer Step",
+    ax2 = MakieAxis(fig2[1, 1]; title="GPU Time Per Optimizer Step",
                ylabel="Time (ms/step)", xticklabelrotation=π/6)
     barplot!(ax2, 1:length(step_ms), step_ms; color=:steelblue)
     ax2.xticks = (1:length(step_labels), step_labels)
@@ -89,7 +91,7 @@ function plot_fairness_convergence(fairness_data, output_dir)
         entries = filter(b -> b[:problem] == ps_name, benchmarks)
 
         fig = Figure(size=(900, 600))
-        ax = Axis(fig[1, 1];
+        ax = MakieAxis(fig[1, 1];
                   title="PDFT vs Manopt.jl — $ps_name ($(fairness_data[:steps]) steps)",
                   xlabel="Step", ylabel="Loss (log scale)", yscale=log10)
 
@@ -133,7 +135,7 @@ function plot_fairness_speedup(fairness_data, output_dir)
 
     isempty(speedups) && return
     fig = Figure(size=(800, 500))
-    ax = Axis(fig[1, 1]; title="Speedup vs Manopt.jl", ylabel="Speedup factor",
+    ax = MakieAxis(fig[1, 1]; title="Speedup vs Manopt.jl", ylabel="Speedup factor",
               xticklabelrotation=π/6)
     barplot!(ax, 1:length(speedups), speedups; color=colors)
     ax.xticks = (1:length(labels), labels)
@@ -156,7 +158,7 @@ function plot_scaling_timing(scaling_data, output_dir)
         colors = [occursin("gpu", b[:label]) ? :steelblue : :salmon for b in entries]
 
         fig = Figure(size=(800, 500))
-        ax = Axis(fig[1, 1]; title="Training Time — $ps_name ($(scaling_data[:steps]) steps)",
+        ax = MakieAxis(fig[1, 1]; title="Training Time — $ps_name ($(scaling_data[:steps]) steps)",
                   ylabel="Time (s)", xticklabelrotation=π/6)
         barplot!(ax, 1:length(times), times; color=colors)
         ax.xticks = (1:length(labels), labels)
@@ -173,7 +175,7 @@ function plot_scaling_convergence(scaling_data, output_dir)
         entries = filter(b -> b[:problem] == ps_name, benchmarks)
 
         fig = Figure(size=(900, 600))
-        ax = Axis(fig[1, 1];
+        ax = MakieAxis(fig[1, 1];
                   title="Loss Convergence — $ps_name ($(scaling_data[:steps]) steps)",
                   xlabel="Step", ylabel="Loss (log scale)", yscale=log10)
 
@@ -248,7 +250,13 @@ function generate_markdown(profile_data, fairness_data, scaling_data)
             manopt = findfirst(b -> b[:label] == "Manopt-GD", entries)
             manopt_time = manopt !== nothing ? entries[manopt][:elapsed_s] : NaN
             for b in entries
-                speedup = b[:label] == "Manopt-GD" ? "—" : @sprintf("%.1fx", manopt_time / b[:elapsed_s])
+                speedup = if b[:label] == "Manopt-GD"
+                    "—"
+                elseif isnan(manopt_time)
+                    "—"
+                else
+                    @sprintf("%.1fx", manopt_time / b[:elapsed_s])
+                end
                 @printf(io, "| %s | %s | %.1f | %.2f | %s |\n",
                         ps_name, b[:label], b[:elapsed_s], b[:final_loss], speedup)
             end
@@ -293,7 +301,7 @@ function generate_markdown(profile_data, fairness_data, scaling_data)
                 @printf(io, "PDFT-GD GPU achieves **%.0fx speedup** over Manopt.jl on 32×32 images, exceeding the 20x target.\n", speedup)
             else
                 @printf(io, "PDFT-GD GPU achieves **%.0fx speedup** over Manopt.jl on 32×32 images. ", speedup)
-                println(io, "The 20x target is not met at this problem size. The bottleneck is Zygote AD operating on individual 2×2 CuArrays (~65-72%% of GPU time), which limits parallelism on small problems.")
+                println(io, "The 20x target is not met at this problem size. The bottleneck is Zygote AD operating on individual 2×2 CuArrays (~65-72% of GPU time), which limits parallelism on small problems.")
             end
         end
     end
