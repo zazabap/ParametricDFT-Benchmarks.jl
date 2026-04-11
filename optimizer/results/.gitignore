@@ -1,0 +1,5 @@
+# Benchmark results are generated locally, not committed
+*.json
+*.png
+*.csv
+report.md
