@@ -153,10 +153,18 @@ function setup_pdft(m, n, train_images, device, optimizer_sym::Symbol)
     return loss_fn, grad_fn, opt, tensors
 end
 
-"""Save dict as pretty JSON."""
+"""Recursively replace NaN/Inf with null-safe values for JSON serialization."""
+function _sanitize_for_json(x::AbstractFloat)
+    isnan(x) || isinf(x) ? nothing : x
+end
+_sanitize_for_json(x::AbstractVector) = [_sanitize_for_json(v) for v in x]
+_sanitize_for_json(x::AbstractDict) = Dict(k => _sanitize_for_json(v) for (k, v) in x)
+_sanitize_for_json(x) = x
+
+"""Save dict as pretty JSON. NaN/Inf values are converted to null."""
 function save_json(path, data)
     mkpath(dirname(path))
     open(path, "w") do io
-        JSON3.pretty(io, data)
+        JSON3.pretty(io, _sanitize_for_json(data))
     end
 end
