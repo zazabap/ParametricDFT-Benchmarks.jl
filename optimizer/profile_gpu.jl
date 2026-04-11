@@ -20,11 +20,20 @@ function profile_phase(name, fn)
     fn()
     CUDA.synchronize()
 
-    # Timed run
+    # GPU-timed run
     t = CUDA.@elapsed begin
         fn()
         CUDA.synchronize()
     end
+
+    # CUDA.@time run for kernel stats (captures to stdout, we also record the timing)
+    println("    CUDA.@time for $name:")
+    print("      ")
+    CUDA.@time begin
+        fn()
+        CUDA.synchronize()
+    end
+
     return (name=name, time_ms=t * 1000)
 end
 
@@ -66,6 +75,17 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
                                  max_iter=1, tol=1e-12, loss_trace=loss_trace)
     end))
 
+    # GPU memory snapshot
+    gpu_mem = Dict{String, Any}()
+    if device == :gpu
+        gpu_mem["free_bytes"] = CUDA.available_memory()
+        gpu_mem["total_bytes"] = CUDA.total_memory()
+        gpu_mem["used_bytes"] = gpu_mem["total_bytes"] - gpu_mem["free_bytes"]
+        gpu_mem["used_pct"] = gpu_mem["used_bytes"] / gpu_mem["total_bytes"] * 100
+        @printf("    GPU Memory: %.0f MB used / %.0f MB total (%.0f%%)\n",
+                gpu_mem["used_bytes"] / 1e6, gpu_mem["total_bytes"] / 1e6, gpu_mem["used_pct"])
+    end
+
     # Multi-step timing (amortized)
     println("    Timing $steps steps...")
     loss_trace_full = Float64[]
@@ -75,6 +95,15 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
         device == :gpu && CUDA.synchronize()
     end
 
+    # CUDA.@time for the multi-step run
+    println("    CUDA.@time for $steps steps:")
+    print("      ")
+    CUDA.@time begin
+        ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
+                                 max_iter=steps, tol=1e-12)
+        CUDA.synchronize()
+    end
+
     return Dict(
         "phases" => [Dict("name" => p.name, "time_ms" => p.time_ms) for p in phases],
         "total_steps" => steps,
@@ -82,6 +111,7 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
         "time_per_step_ms" => (elapsed / steps) * 1000,
         "loss_start" => isempty(loss_trace_full) ? NaN : first(loss_trace_full),
         "loss_end" => isempty(loss_trace_full) ? NaN : last(loss_trace_full),
+        "gpu_memory" => gpu_mem,
     )
 end
 
