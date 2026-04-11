@@ -26,6 +26,60 @@ end
 # Plot Generation
 # ============================================================================
 
+function plot_profile_phases(profile_data, output_dir)
+    profile_data === nothing && return
+    profiles = profile_data[:profiles]
+    isempty(profiles) && return
+
+    # Bar chart: per-phase timing breakdown for each config
+    labels = String[]
+    fwd_times = Float64[]
+    grad_times = Float64[]
+    step_times = Float64[]
+
+    for (label, profile) in profiles
+        push!(labels, replace(string(label), "_" => "\n"))
+        phases = profile[:phases]
+        fwd = findfirst(p -> p[:name] == "forward_pass", phases)
+        grad = findfirst(p -> p[:name] == "gradient", phases)
+        full = findfirst(p -> p[:name] == "full_step", phases)
+        push!(fwd_times, fwd !== nothing ? phases[fwd][:time_ms] : 0.0)
+        push!(grad_times, grad !== nothing ? phases[grad][:time_ms] : 0.0)
+        push!(step_times, full !== nothing ? phases[full][:time_ms] : 0.0)
+    end
+
+    isempty(labels) && return
+
+    # Stacked-style grouped bar chart
+    fig = Figure(size=(900, 500))
+    ax = Axis(fig[1, 1]; title="GPU Per-Phase Timing Breakdown",
+              ylabel="Time (ms)", xticklabelrotation=π/6)
+
+    xs = 1:length(labels)
+    w = 0.25
+    barplot!(ax, xs .- w, fwd_times; width=w, color=:steelblue, label="Forward")
+    barplot!(ax, xs, grad_times; width=w, color=:salmon, label="Gradient")
+    barplot!(ax, xs .+ w, step_times; width=w, color=:seagreen, label="Full Step")
+    ax.xticks = (xs, labels)
+    axislegend(ax; position=:lt)
+    save(joinpath(output_dir, "profile_phases.png"), fig)
+
+    # Time per step chart
+    step_ms = Float64[]
+    step_labels = String[]
+    for (label, profile) in profiles
+        push!(step_labels, replace(string(label), "_" => "\n"))
+        push!(step_ms, profile[:time_per_step_ms])
+    end
+
+    fig2 = Figure(size=(800, 500))
+    ax2 = Axis(fig2[1, 1]; title="GPU Time Per Optimizer Step",
+               ylabel="Time (ms/step)", xticklabelrotation=π/6)
+    barplot!(ax2, 1:length(step_ms), step_ms; color=:steelblue)
+    ax2.xticks = (1:length(step_labels), step_labels)
+    save(joinpath(output_dir, "profile_time_per_step.png"), fig2)
+end
+
 function plot_fairness_convergence(fairness_data, output_dir)
     fairness_data === nothing && return
     benchmarks = fairness_data[:benchmarks]
@@ -261,11 +315,14 @@ function main()
     scaling_data = load_json(joinpath(RESULTS_DIR, "scaling", "scaling_results.json"))
 
     # Generate plots
+    profile_dir = joinpath(RESULTS_DIR, "profile")
     fairness_dir = joinpath(RESULTS_DIR, "fairness")
     scaling_dir = joinpath(RESULTS_DIR, "scaling")
+    mkpath(profile_dir)
     mkpath(fairness_dir)
     mkpath(scaling_dir)
 
+    plot_profile_phases(profile_data, profile_dir)
     plot_fairness_convergence(fairness_data, fairness_dir)
     plot_fairness_speedup(fairness_data, fairness_dir)
     plot_scaling_timing(scaling_data, scaling_dir)
