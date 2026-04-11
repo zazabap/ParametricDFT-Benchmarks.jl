@@ -115,39 +115,51 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
     )
 end
 
-function sample_gpu_power(duration_s::Int=10)
-    # Sample nvidia-smi power draw
-    power_samples = Float64[]
-    start = time()
-    while (time() - start) < duration_s
-        try
-            output = read(`nvidia-smi --query-gpu=power.draw --format=csv,noheader,nounits`, String)
-            push!(power_samples, parse(Float64, strip(output)))
-        catch
-            break
-        end
-        sleep(0.5)
-    end
+"""Sample GPU utilization and power over time. Returns dict with time-series arrays."""
+function sample_gpu_usage(duration_s::Int=30; interval_ms::Int=200)
+    timestamps = Float64[]
+    gpu_util_pct = Float64[]
+    mem_util_pct = Float64[]
+    power_watts = Float64[]
 
-    if isempty(power_samples)
-        return Dict("available" => false)
-    end
-
-    # Get max power
-    max_power = try
+    # Get power limit once
+    power_limit = try
         output = read(`nvidia-smi --query-gpu=power.limit --format=csv,noheader,nounits`, String)
         parse(Float64, strip(output))
     catch
         NaN
     end
 
+    start = time()
+    while (time() - start) < duration_s
+        try
+            output = read(`nvidia-smi --query-gpu=utilization.gpu,utilization.memory,power.draw --format=csv,noheader,nounits`, String)
+            vals = split(strip(output), ",")
+            push!(timestamps, time() - start)
+            push!(gpu_util_pct, parse(Float64, strip(vals[1])))
+            push!(mem_util_pct, parse(Float64, strip(vals[2])))
+            push!(power_watts, parse(Float64, strip(vals[3])))
+        catch
+            break
+        end
+        sleep(interval_ms / 1000)
+    end
+
+    if isempty(timestamps)
+        return Dict("available" => false)
+    end
+
     return Dict(
         "available" => true,
-        "samples" => power_samples,
-        "mean_watts" => mean(power_samples),
-        "max_watts" => maximum(power_samples),
-        "power_limit_watts" => max_power,
-        "utilization_pct" => isnan(max_power) ? NaN : mean(power_samples) / max_power * 100,
+        "timestamps_s" => timestamps,
+        "gpu_util_pct" => gpu_util_pct,
+        "mem_util_pct" => mem_util_pct,
+        "power_watts" => power_watts,
+        "power_limit_watts" => power_limit,
+        "mean_gpu_util" => mean(gpu_util_pct),
+        "mean_mem_util" => mean(mem_util_pct),
+        "mean_power" => mean(power_watts),
+        "power_utilization_pct" => isnan(power_limit) ? NaN : mean(power_watts) / power_limit * 100,
     )
 end
 
@@ -186,24 +198,44 @@ function main()
         end
     end
 
-    # GPU power sampling during a short training run
-    println("\n  Sampling GPU power (10s training run)...")
-    ps = PROBLEM_SIZES[1]  # Use smallest problem
-    power_data_result = try_load_dataset(ps.dataset;
+    # GPU utilization sampling during training
+    # Use the largest available problem for meaningful GPU load
+    println("\n  Sampling GPU utilization during training...")
+    sample_ps = last(PROBLEM_SIZES)  # 512×512 preferred — longer steps, better sampling
+    sample_data = try_load_dataset(sample_ps.dataset;
         n_train=preset.n_train, n_test=preset.n_test,
-        img_size=2^ps.m)
-    if power_data_result !== nothing
-        power_train, _, _ = power_data_result
-        power_task = Threads.@spawn begin
-            loss_fn, grad_fn, opt, tensors = setup_pdft(ps.m, ps.n, power_train, :gpu, :gradient_descent)
-            ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn; max_iter=200, tol=1e-12)
+        img_size=2^sample_ps.m)
+    if sample_data === nothing
+        # Fall back to smallest
+        sample_ps = first(PROBLEM_SIZES)
+        sample_data = try_load_dataset(sample_ps.dataset;
+            n_train=preset.n_train, n_test=preset.n_test,
+            img_size=2^sample_ps.m)
+    end
+    if sample_data !== nothing
+        sample_train, _, _ = sample_data
+        println("    Running $(sample_ps.name) GD on GPU while sampling nvidia-smi...")
+        # Launch training in background thread, sample GPU usage in main thread
+        training_task = Threads.@spawn begin
+            loss_fn, grad_fn, opt, tensors = setup_pdft(sample_ps.m, sample_ps.n, sample_train, :gpu, :gradient_descent)
+            # Warmup
+            ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn; max_iter=1, tol=1e-12)
+            CUDA.synchronize()
+            # Actual run
+            ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn; max_iter=steps * 2, tol=1e-12)
             CUDA.synchronize()
         end
-        power_data = sample_gpu_power(10)
-        wait(power_task)
-        results["gpu_power"] = power_data
+        gpu_usage = sample_gpu_usage(30; interval_ms=200)
+        wait(training_task)
+        results["gpu_usage"] = gpu_usage
+        if gpu_usage["available"]
+            @printf("    GPU Util: %.0f%% avg | Mem Util: %.0f%% avg | Power: %.0fW / %.0fW (%.0f%%)\n",
+                    gpu_usage["mean_gpu_util"], gpu_usage["mean_mem_util"],
+                    gpu_usage["mean_power"], gpu_usage["power_limit_watts"],
+                    gpu_usage["power_utilization_pct"])
+        end
     else
-        results["gpu_power"] = Dict("available" => false)
+        results["gpu_usage"] = Dict("available" => false)
     end
 
     # Save
@@ -222,9 +254,12 @@ function main()
             @printf("    %-24s  %6.2f ms\n", phase["name"], phase["time_ms"])
         end
     end
-    if power_data["available"]
-        @printf("\n  GPU Power: %.0fW avg / %.0fW limit (%.0f%% utilization)\n",
-                power_data["mean_watts"], power_data["power_limit_watts"], power_data["utilization_pct"])
+    gpu_usage = results["gpu_usage"]
+    if gpu_usage isa Dict && get(gpu_usage, "available", false)
+        @printf("\n  GPU Utilization: %.0f%% avg | Memory: %.0f%% avg | Power: %.0fW / %.0fW (%.0f%%)\n",
+                gpu_usage["mean_gpu_util"], gpu_usage["mean_mem_util"],
+                gpu_usage["mean_power"], gpu_usage["power_limit_watts"],
+                gpu_usage["power_utilization_pct"])
     end
 end
 

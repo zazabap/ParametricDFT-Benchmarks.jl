@@ -105,6 +105,40 @@ function plot_profile_phases(profile_data, output_dir)
     save(joinpath(output_dir, "profile_time_per_step.png"), fig2)
 end
 
+function plot_gpu_utilization(profile_data, output_dir)
+    profile_data === nothing && return
+    gpu_usage = get(profile_data, :gpu_usage, nothing)
+    gpu_usage === nothing && return
+    get(gpu_usage, :available, false) || return
+
+    ts = Float64.(gpu_usage[:timestamps_s])
+    gpu_pct = Float64.(gpu_usage[:gpu_util_pct])
+    mem_pct = Float64.(gpu_usage[:mem_util_pct])
+    power = Float64.(gpu_usage[:power_watts])
+    power_limit = Float64(gpu_usage[:power_limit_watts])
+
+    # GPU utilization + memory utilization over time
+    fig = Figure(size=(900, 500))
+    ax = MakieAxis(fig[1, 1]; title="GPU Utilization During Training",
+              xlabel="Time (s)", ylabel="Utilization (%)")
+    lines!(ax, ts, gpu_pct; label="GPU Compute", color=:steelblue, linewidth=2)
+    lines!(ax, ts, mem_pct; label="Memory Bus", color=:salmon, linewidth=2)
+    ylims!(ax, 0, 105)
+    axislegend(ax; position=:rb)
+    save(joinpath(output_dir, "profile_gpu_utilization.png"), fig)
+
+    # Power over time
+    fig2 = Figure(size=(900, 400))
+    ax2 = MakieAxis(fig2[1, 1]; title="GPU Power During Training",
+               xlabel="Time (s)", ylabel="Power (W)")
+    lines!(ax2, ts, power; color=:orange, linewidth=2, label="Power Draw")
+    if !isnan(power_limit)
+        hlines!(ax2, [power_limit]; color=:red, linestyle=:dash, linewidth=1, label="TDP Limit")
+    end
+    axislegend(ax2; position=:rb)
+    save(joinpath(output_dir, "profile_gpu_power.png"), fig2)
+end
+
 function plot_fairness_convergence(fairness_data, output_dir)
     fairness_data === nothing && return
     benchmarks = fairness_data[:benchmarks]
@@ -364,6 +398,7 @@ function main()
     mkpath(scaling_dir)
 
     plot_profile_phases(profile_data, profile_dir)
+    plot_gpu_utilization(profile_data, profile_dir)
     plot_fairness_convergence(fairness_data, fairness_dir)
     plot_fairness_speedup(fairness_data, fairness_dir)
     plot_scaling_timing(scaling_data, scaling_dir)
