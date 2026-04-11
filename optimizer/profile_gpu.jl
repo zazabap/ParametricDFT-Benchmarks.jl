@@ -13,26 +13,33 @@ include(joinpath(@__DIR__, "config.jl"))
 const WARMUP_STEPS = 3
 const PROFILE_STEPS = 5
 
-function profile_phase(name, fn)
+function profile_phase(name, fn, device)
     # Warmup
     fn()
-    CUDA.synchronize()
+    device == :gpu && CUDA.synchronize()
 
-    # CUDA.@timed captures everything: time, GPU allocs, mem management
-    stats = CUDA.@timed begin
-        fn()
-        CUDA.synchronize()
+    if device == :gpu
+        stats = CUDA.@timed begin
+            fn()
+            CUDA.synchronize()
+        end
+        wall_time = stats.time
+        gpu_allocs = stats.gpu_memstats.alloc_count
+        gpu_bytes = stats.gpu_memstats.alloc_bytes
+        gpu_memtime_ms = stats.gpu_memtime * 1000
+        cpu_allocs = stats.cpu_gcstats.malloc + stats.cpu_gcstats.realloc + stats.cpu_gcstats.poolalloc
+        memmgmt_pct = wall_time > 0 ? stats.gpu_memtime / wall_time * 100 : 0.0
+    else
+        wall_time = @elapsed fn()
+        gpu_allocs = 0
+        gpu_bytes = 0.0
+        gpu_memtime_ms = 0.0
+        cpu_allocs = 0  # not easily captured without CUDA.@timed
+        memmgmt_pct = 0.0
     end
 
-    wall_time = stats.time
-    gpu_allocs = stats.gpu_memstats.alloc_count
-    gpu_bytes = stats.gpu_memstats.alloc_bytes
-    gpu_memtime_ms = stats.gpu_memtime * 1000
-    cpu_allocs = stats.cpu_gcstats.malloc + stats.cpu_gcstats.realloc + stats.cpu_gcstats.poolalloc
-    memmgmt_pct = wall_time > 0 ? stats.gpu_memtime / wall_time * 100 : 0.0
-
-    @printf("    %-20s  %.1f ms | %d GPU allocs (%.1f MiB) | %d CPU allocs | %.1f%% mem mgmt\n",
-            name, wall_time * 1000, gpu_allocs, gpu_bytes / 1e6, cpu_allocs, memmgmt_pct)
+    @printf("    %-20s  %.1f ms | %d GPU allocs | %.1f%% mem mgmt\n",
+            name, wall_time * 1000, gpu_allocs, memmgmt_pct)
 
     return (
         name=name,
@@ -59,18 +66,14 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
     println("    Profiling per-phase timing...")
     phases = []
 
-    # Full forward pass
-    push!(phases, profile_phase("forward_pass", () -> loss_fn(tensors)))
+    push!(phases, profile_phase("forward_pass", () -> loss_fn(tensors), device))
+    push!(phases, profile_phase("gradient", () -> grad_fn(tensors), device))
 
-    # Full gradient
-    push!(phases, profile_phase("gradient", () -> grad_fn(tensors)))
-
-    # Full optimization step (forward + gradient + project + retract)
     loss_trace = Float64[]
     push!(phases, profile_phase("full_step", () -> begin
         ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
                                  max_iter=1, tol=1e-12, loss_trace=loss_trace)
-    end))
+    end, device))
 
     # GPU memory snapshot
     gpu_mem = Dict{String, Any}()
@@ -87,16 +90,25 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
     println("    Timing $steps steps...")
     loss_trace_full = Float64[]
 
-    multi_stats = CUDA.@timed begin
-        ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
-                                 max_iter=steps, tol=1e-12, loss_trace=loss_trace_full)
-        CUDA.synchronize()
+    if device == :gpu
+        multi_stats = CUDA.@timed begin
+            ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
+                                     max_iter=steps, tol=1e-12, loss_trace=loss_trace_full)
+            CUDA.synchronize()
+        end
+        wall_elapsed = multi_stats.time
+        total_gpu_allocs = multi_stats.gpu_memstats.alloc_count
+        total_memmgmt_ms = multi_stats.gpu_memtime * 1000
+        memmgmt_pct = wall_elapsed > 0 ? multi_stats.gpu_memtime / wall_elapsed * 100 : 0.0
+    else
+        wall_elapsed = @elapsed begin
+            ParametricDFT.optimize!(opt, copy.(tensors), loss_fn, grad_fn;
+                                     max_iter=steps, tol=1e-12, loss_trace=loss_trace_full)
+        end
+        total_gpu_allocs = 0
+        total_memmgmt_ms = 0.0
+        memmgmt_pct = 0.0
     end
-
-    wall_elapsed = multi_stats.time
-    total_gpu_allocs = multi_stats.gpu_memstats.alloc_count
-    total_memmgmt_ms = multi_stats.gpu_memtime * 1000
-    memmgmt_pct = wall_elapsed > 0 ? multi_stats.gpu_memtime / wall_elapsed * 100 : 0.0
 
     @printf("    %d steps: %.1f ms total | %d GPU allocs (%.0f/step) | %.1f%% mem mgmt\n",
             steps, wall_elapsed * 1000, total_gpu_allocs, total_gpu_allocs / steps, memmgmt_pct)
@@ -202,10 +214,12 @@ function main()
         train_images, _, _ = data
 
         for optimizer_sym in [:gradient_descent, :adam]
-            label = "$(ps.name)_$(optimizer_sym)_gpu"
-            println("  Config: $label")
-            profile = profile_optimizer(ps.m, ps.n, train_images, :gpu, optimizer_sym, steps)
-            results["profiles"][label] = profile
+            for device in [:cpu, :gpu]
+                label = "$(ps.name)_$(optimizer_sym)_$(device)"
+                println("  Config: $label")
+                profile = profile_optimizer(ps.m, ps.n, train_images, device, optimizer_sym, steps)
+                results["profiles"][label] = profile
+            end
         end
     end
 
