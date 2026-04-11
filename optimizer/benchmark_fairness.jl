@@ -113,9 +113,11 @@ function main()
         println("=" ^ 70)
 
         Random.seed!(SEED)
-        train_images, _, _ = load_dataset(ps.dataset;
+        data = try_load_dataset(ps.dataset;
             n_train=preset.n_train, n_test=preset.n_test,
             img_size=2^ps.m)
+        data === nothing && continue
+        train_images, _, _ = data
 
         for cfg in FAIRNESS_CONFIGS
             @printf("  %-20s ... ", cfg.label)

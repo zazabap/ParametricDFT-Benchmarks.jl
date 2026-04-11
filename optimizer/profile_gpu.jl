@@ -142,9 +142,11 @@ function main()
     # Profile each problem size with GD and Adam on GPU
     for ps in PROBLEM_SIZES
         println("\n  Problem: $(ps.name) (m=$(ps.m), n=$(ps.n))")
-        train_images, _, _ = load_dataset(ps.dataset;
+        data = try_load_dataset(ps.dataset;
             n_train=preset.n_train, n_test=preset.n_test,
             img_size=2^ps.m)
+        data === nothing && continue
+        train_images, _, _ = data
 
         for optimizer_sym in [:gradient_descent, :adam]
             label = "$(ps.name)_$(optimizer_sym)_gpu"
@@ -157,19 +159,22 @@ function main()
     # GPU power sampling during a short training run
     println("\n  Sampling GPU power (10s training run)...")
     ps = PROBLEM_SIZES[1]  # Use smallest problem
-    train_images, _, _ = load_dataset(ps.dataset;
+    power_data_result = try_load_dataset(ps.dataset;
         n_train=preset.n_train, n_test=preset.n_test,
         img_size=2^ps.m)
-
-    # Start training in background, sample power
-    power_task = Threads.@spawn begin
-        loss_fn, grad_fn, opt, tensors = setup_pdft(ps.m, ps.n, train_images, :gpu, :gradient_descent)
-        ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn; max_iter=200, tol=1e-12)
-        CUDA.synchronize()
+    if power_data_result !== nothing
+        power_train, _, _ = power_data_result
+        power_task = Threads.@spawn begin
+            loss_fn, grad_fn, opt, tensors = setup_pdft(ps.m, ps.n, power_train, :gpu, :gradient_descent)
+            ParametricDFT.optimize!(opt, tensors, loss_fn, grad_fn; max_iter=200, tol=1e-12)
+            CUDA.synchronize()
+        end
+        power_data = sample_gpu_power(10)
+        wait(power_task)
+        results["gpu_power"] = power_data
+    else
+        results["gpu_power"] = Dict("available" => false)
     end
-    power_data = sample_gpu_power(10)
-    wait(power_task)
-    results["gpu_power"] = power_data
 
     # Save
     path = joinpath(RESULTS_DIR, "profile", "kernel_profile.json")

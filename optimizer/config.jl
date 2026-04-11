@@ -76,6 +76,16 @@ function load_dataset(dataset::Symbol; n_train::Int, n_test::Int, img_size::Int,
     end
 end
 
+"""Try to load dataset. Returns data tuple or nothing if dataset is unavailable."""
+function try_load_dataset(dataset::Symbol; n_train::Int, n_test::Int, img_size::Int, seed::Int=SEED)
+    try
+        return load_dataset(dataset; n_train=n_train, n_test=n_test, img_size=img_size, seed=seed)
+    catch e
+        println("    SKIP: $dataset — $(first(sprint(showerror, e), 80))")
+        return nothing
+    end
+end
+
 """
     parse_preset(args=ARGS)
 
