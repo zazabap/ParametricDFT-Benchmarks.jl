@@ -18,13 +18,31 @@ using ADTypes: AutoZygote
 # Manopt Helpers
 # ============================================================================
 
-"""Build ProductManifold of Stiefel(2,2,ℂ) for QFT circuit tensors."""
+"""Build ProductManifold matching PDFT's per-tensor manifold classification.
+Unitary gates → Stiefel(2,2,ℂ), phase gates → PowerManifold(Circle(ℂ), 2, 2)."""
 function manopt_manifold(tensors)
-    S = Stiefel(2, 2, ℂ)
-    return ProductManifold(ntuple(_ -> S, length(tensors))...)
+    manifolds = map(tensors) do t
+        if ParametricDFT.is_unitary_general(t)
+            Stiefel(2, 2, ℂ)
+        else
+            PowerManifold(Circle(ℂ), NestedPowerRepresentation(), 2, 2)
+        end
+    end
+    return ProductManifold(manifolds...)
 end
 
-tensors2point(tensors) = ArrayPartition(tensors...)
+"""Convert tensors to Manopt point. Phase gates need element-wise normalization for Circle manifold."""
+function tensors2point(tensors)
+    parts = map(tensors) do t
+        if ParametricDFT.is_unitary_general(t)
+            t  # Stiefel point: matrix as-is
+        else
+            t ./ abs.(t)  # Circle point: normalize each element to unit magnitude
+        end
+    end
+    return ArrayPartition(parts...)
+end
+
 point2tensors(p) = collect(p.x)
 
 # ============================================================================
