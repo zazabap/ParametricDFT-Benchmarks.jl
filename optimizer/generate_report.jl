@@ -52,16 +52,29 @@ function plot_profile_phases(profile_data, output_dir)
 
     isempty(labels) && return
 
-    # Stacked-style grouped bar chart
+    # Choose unit
+    max_t = maximum(step_times)
+    if max_t >= 1000
+        fwd_display = fwd_times ./ 1000
+        grad_display = grad_times ./ 1000
+        step_display = step_times ./ 1000
+        unit = "Time (s)"
+    else
+        fwd_display = fwd_times
+        grad_display = grad_times
+        step_display = step_times
+        unit = "Time (ms)"
+    end
+
     fig = Figure(size=(900, 500))
     ax = MakieAxis(fig[1, 1]; title="GPU Per-Phase Timing Breakdown",
-              ylabel="Time (ms)", xticklabelrotation=π/6)
+              ylabel=unit, xticklabelrotation=π/6)
 
     xs = 1:length(labels)
     w = 0.25
-    barplot!(ax, xs .- w, fwd_times; width=w, color=:steelblue, label="Forward")
-    barplot!(ax, xs, grad_times; width=w, color=:salmon, label="Gradient")
-    barplot!(ax, xs .+ w, step_times; width=w, color=:seagreen, label="Full Step")
+    barplot!(ax, xs .- w, fwd_display; width=w, color=:steelblue, label="Forward")
+    barplot!(ax, xs, grad_display; width=w, color=:salmon, label="Gradient")
+    barplot!(ax, xs .+ w, step_display; width=w, color=:seagreen, label="Full Step")
     ax.xticks = (xs, labels)
     axislegend(ax; position=:lt)
     save(joinpath(output_dir, "profile_phases.png"), fig)
@@ -74,10 +87,20 @@ function plot_profile_phases(profile_data, output_dir)
         push!(step_ms, profile[:time_per_step_ms])
     end
 
+    # Choose unit
+    max_t = maximum(step_ms)
+    if max_t >= 1000
+        display_vals = step_ms ./ 1000
+        unit = "s/step"
+    else
+        display_vals = step_ms
+        unit = "ms/step"
+    end
+
     fig2 = Figure(size=(800, 500))
     ax2 = MakieAxis(fig2[1, 1]; title="GPU Time Per Optimizer Step",
-               ylabel="Time (ms/step)", xticklabelrotation=π/6)
-    barplot!(ax2, 1:length(step_ms), step_ms; color=:steelblue)
+               ylabel=unit, xticklabelrotation=π/6)
+    barplot!(ax2, 1:length(display_vals), display_vals; color=:steelblue)
     ax2.xticks = (1:length(step_labels), step_labels)
     save(joinpath(output_dir, "profile_time_per_step.png"), fig2)
 end
@@ -93,7 +116,7 @@ function plot_fairness_convergence(fairness_data, output_dir)
         fig = Figure(size=(900, 600))
         ax = MakieAxis(fig[1, 1];
                   title="PDFT vs Manopt.jl — $ps_name ($(fairness_data[:steps]) steps)",
-                  xlabel="Step", ylabel="Loss (log scale)", yscale=log10)
+                  xlabel="Step", ylabel="Loss", yscale=log10)
 
         colors = Dict("Manopt-GD" => :black, "PDFT-GD (cpu)" => :blue, "PDFT-GD (gpu)" => :red)
         styles = Dict("Manopt-GD" => :solid, "PDFT-GD (cpu)" => :dash, "PDFT-GD (gpu)" => :solid)
@@ -154,13 +177,23 @@ function plot_scaling_timing(scaling_data, output_dir)
         entries = filter(b -> b[:problem] == ps_name, benchmarks)
 
         labels = [b[:label] for b in entries]
-        times = [b[:elapsed_s] for b in entries]
+        times_per_step = [b[:time_per_step_ms] for b in entries]
         colors = [occursin("gpu", b[:label]) ? :steelblue : :salmon for b in entries]
 
+        # Choose unit: ms if max < 1000, seconds otherwise
+        max_t = maximum(times_per_step)
+        if max_t >= 1000
+            display_vals = times_per_step ./ 1000
+            unit = "s/step"
+        else
+            display_vals = times_per_step
+            unit = "ms/step"
+        end
+
         fig = Figure(size=(800, 500))
-        ax = MakieAxis(fig[1, 1]; title="Training Time — $ps_name ($(scaling_data[:steps]) steps)",
-                  ylabel="Time (s)", xticklabelrotation=π/6)
-        barplot!(ax, 1:length(times), times; color=colors)
+        ax = MakieAxis(fig[1, 1]; title="Time Per Step — $ps_name",
+                  ylabel=unit, xticklabelrotation=π/6)
+        barplot!(ax, 1:length(display_vals), display_vals; color=colors)
         ax.xticks = (1:length(labels), labels)
         save(joinpath(output_dir, "scaling_timing_$(ps_name).png"), fig)
     end
@@ -177,7 +210,7 @@ function plot_scaling_convergence(scaling_data, output_dir)
         fig = Figure(size=(900, 600))
         ax = MakieAxis(fig[1, 1];
                   title="Loss Convergence — $ps_name ($(scaling_data[:steps]) steps)",
-                  xlabel="Step", ylabel="Loss (log scale)", yscale=log10)
+                  xlabel="Step", ylabel="Loss", yscale=log10)
 
         colors = Dict("PDFT-GD (cpu)" => :blue, "PDFT-GD (gpu)" => :blue,
                        "PDFT-Adam (cpu)" => :red, "PDFT-Adam (gpu)" => :red)
