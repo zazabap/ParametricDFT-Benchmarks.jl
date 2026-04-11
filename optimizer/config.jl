@@ -32,7 +32,7 @@ const RESULTS_DIR = joinpath(@__DIR__, "results")
 
 const OPTIMIZER_PRESETS = Dict(
     :smoke => (steps=10,  n_train=5,  n_test=3),
-    :quick => (steps=100, n_train=10, n_test=5),
+    :quick => (steps=30, n_train=10, n_test=5),
     :full  => (steps=500, n_train=20, n_test=5),
 )
 
