@@ -91,7 +91,7 @@ function run_manopt_gd(m, n, train_images, steps)
     return loss_trace, elapsed
 end
 
-"""Run PDFT optimize! for fair comparison."""
+"""Run PDFT optimize! for fair comparison. Returns (loss_trace, elapsed, setup_tuple)."""
 function run_pdft_gd(m, n, train_images, steps, device)
     loss_fn, grad_fn, opt, tensors = setup_pdft(m, n, train_images, device, :gradient_descent)
 
@@ -107,7 +107,7 @@ function run_pdft_gd(m, n, train_images, steps, device)
         device == :gpu && CUDA.synchronize()
     end
 
-    return loss_trace, elapsed
+    return loss_trace, elapsed, (loss_fn, grad_fn, opt, tensors)
 end
 
 # ============================================================================
@@ -146,34 +146,48 @@ function main()
         train_images, _, _ = data
 
         for cfg in FAIRNESS_CONFIGS
-            # Skip Manopt on large problems — it's per-image without batching, impractical for 512x512+
-            if cfg.framework == :manopt && ps.m + ps.n > 12
-                println("  $(cfg.label)          SKIP (too large for per-image Manopt)")
-                continue
-            end
+            # For large problems, run Manopt for MANOPT_TIMING_STEPS to get per-step timing
+            is_timing_only = cfg.framework == :manopt && ps.m + ps.n > 12
+            actual_steps = is_timing_only ? MANOPT_TIMING_STEPS : preset.steps
 
             @printf("  %-20s ... ", cfg.label)
+            if is_timing_only
+                @printf("(timing only, %d steps) ", actual_steps)
+            end
             flush(stdout)
 
             try
+                gpu_allocs_per_step = 0
+                mem_mgmt_pct_val = 0.0
+
                 loss_trace, elapsed = if cfg.framework == :manopt
-                    run_manopt_gd(ps.m, ps.n, train_images, preset.steps)
+                    run_manopt_gd(ps.m, ps.n, train_images, actual_steps)
                 else
-                    run_pdft_gd(ps.m, ps.n, train_images, preset.steps, cfg.device)
+                    lt, el, setup = run_pdft_gd(ps.m, ps.n, train_images, actual_steps, cfg.device)
+                    if cfg.device == :gpu
+                        loss_fn, grad_fn, opt, tensors = setup
+                        gpu_allocs_per_step, mem_mgmt_pct_val = measure_gpu_step_overhead(loss_fn, grad_fn, opt, tensors)
+                    end
+                    lt, el
                 end
 
                 final_loss = isempty(loss_trace) ? NaN : last(loss_trace)
-                @printf("%.1fs  loss=%.2f  (%d steps)\n", elapsed, final_loss, length(loss_trace))
+                time_per_step = elapsed / actual_steps * 1000
+                @printf("%.1fs  (%.1f ms/step)  loss=%.2f\n", elapsed, time_per_step, final_loss)
 
                 push!(results["benchmarks"], Dict(
                     "problem" => ps.name,
                     "label" => cfg.label,
                     "framework" => string(cfg.framework),
                     "device" => string(cfg.device),
-                    "steps" => preset.steps,
+                    "steps" => actual_steps,
                     "elapsed_s" => elapsed,
+                    "time_per_step_ms" => time_per_step,
                     "final_loss" => final_loss,
                     "loss_trace" => loss_trace,
+                    "gpu_allocs_per_step" => gpu_allocs_per_step,
+                    "mem_mgmt_pct" => mem_mgmt_pct_val,
+                    "timing_only" => is_timing_only,
                 ))
             catch e
                 msg = sprint(showerror, e)
@@ -195,13 +209,16 @@ function main()
         println("  $(ps.name):")
         entries = filter(b -> b["problem"] == ps.name, results["benchmarks"])
         manopt = findfirst(b -> b["label"] == "Manopt-GD", entries)
+        manopt_ms = manopt !== nothing ? entries[manopt]["time_per_step_ms"] : NaN
         for b in entries
-            @printf("    %-20s  %7.2fs  loss=%.2f", b["label"], b["elapsed_s"], b["final_loss"])
-            if manopt !== nothing && b["label"] != "Manopt-GD"
-                speedup = entries[manopt]["elapsed_s"] / b["elapsed_s"]
-                @printf("  (%.1fx vs Manopt)", speedup)
+            speedup_str = if b["label"] == "Manopt-GD" || isnan(manopt_ms)
+                ""
+            else
+                @sprintf("  (%.1fx vs Manopt)", manopt_ms / b["time_per_step_ms"])
             end
-            println()
+            timing_flag = get(b, "timing_only", false) ? " [timing only]" : ""
+            @printf("    %-20s  %7.1f ms/step  loss=%.2f%s%s\n",
+                    b["label"], b["time_per_step_ms"], b["final_loss"], speedup_str, timing_flag)
         end
     end
 end
