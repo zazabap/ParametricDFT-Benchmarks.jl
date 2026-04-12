@@ -258,6 +258,7 @@ function main()
         sleep(0.5)
         gpu_usage = sample_gpu_usage(30; interval_ms=200)
         wait(training_task)
+        gpu_usage["experiment"] = "$(sample_ps.name) GD (GPU)"
         results["gpu_usage"] = gpu_usage
         if gpu_usage["available"]
             @printf("    GPU Util: %.0f%% avg | Mem Util: %.0f%% avg | Power: %.0fW / %.0fW (%.0f%%)\n",

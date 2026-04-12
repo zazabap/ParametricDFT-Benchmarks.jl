@@ -100,7 +100,7 @@ function plot_profile_phases(profile_data, output_dir)
     save(joinpath(output_dir, "profile_phases.png"), fig)
 
     # GPU allocation count per step — shows kernel launch overhead
-    fig2 = Figure(size=(500 * length(group_names), 500))
+    fig2 = Figure(size=(500 * length(group_names), 550))
     for (i, ps_name) in enumerate(group_names)
         entries = groups[ps_name]
         labels = [e[1] for e in entries]
@@ -112,11 +112,14 @@ function plot_profile_phases(profile_data, output_dir)
         xs = 1:length(labels)
         barplot!(ax, xs, allocs; color=:steelblue)
         ax.xticks = (xs, labels)
-        # Add memmgmt % as text labels
+        # Label each bar: alloc count + memory management overhead %
         for (j, (a, m)) in enumerate(zip(allocs, memmgmt))
-            text!(ax, j, a; text=@sprintf("%.1f%% mgmt", m), align=(:center, :bottom), fontsize=10)
+            text!(ax, j, a; text=@sprintf("%d allocs\n%.1f%% mem overhead", Int(a), m),
+                  align=(:center, :bottom), fontsize=9)
         end
     end
+    Label(fig2[end+1, :], "mem overhead = fraction of wall time spent in GPU memory allocation/deallocation";
+          fontsize=11, color=:gray40)
     save(joinpath(output_dir, "profile_gpu_allocs.png"), fig2)
 
     # Time per step — split by problem size
@@ -164,8 +167,9 @@ function plot_gpu_utilization(profile_data, output_dir)
     all(isnan, ts) && return
 
     # GPU utilization + memory utilization over time
+    experiment = get(gpu_usage, :experiment, "training")
     fig = Figure(size=(900, 500))
-    ax = MakieAxis(fig[1, 1]; title="GPU Utilization During Training",
+    ax = MakieAxis(fig[1, 1]; title="GPU Utilization — $experiment",
               xlabel="Time (s)", ylabel="Utilization (%)")
     lines!(ax, ts, gpu_pct; label="GPU Compute", color=:steelblue, linewidth=2)
     lines!(ax, ts, mem_pct; label="Memory Bus", color=:salmon, linewidth=2)
@@ -175,7 +179,7 @@ function plot_gpu_utilization(profile_data, output_dir)
 
     # Power over time
     fig2 = Figure(size=(900, 400))
-    ax2 = MakieAxis(fig2[1, 1]; title="GPU Power During Training",
+    ax2 = MakieAxis(fig2[1, 1]; title="GPU Power — $experiment",
                xlabel="Time (s)", ylabel="Power (W)")
     lines!(ax2, ts, power; color=:orange, linewidth=2, label="Power Draw")
     if !isnan(power_limit)
@@ -195,8 +199,8 @@ function plot_fairness_convergence(fairness_data, output_dir)
 
         fig = Figure(size=(900, 600))
         ax = MakieAxis(fig[1, 1];
-                  title="PDFT vs Manopt.jl — $ps_name ($(fairness_data[:steps]) steps)",
-                  xlabel="Step", ylabel="Loss", yscale=log10)
+                  title="PDFT vs Manopt.jl — $ps_name",
+                  xlabel="Step", ylabel="Normalized Loss (loss / loss₀)")
 
         colors = Dict("Manopt-GD" => :black, "PDFT-GD (cpu)" => :blue, "PDFT-GD (gpu)" => :red)
         styles = Dict("Manopt-GD" => :solid, "PDFT-GD (cpu)" => :dash, "PDFT-GD (gpu)" => :solid)
@@ -204,7 +208,9 @@ function plot_fairness_convergence(fairness_data, output_dir)
         for b in entries
             trace = safe_float_vec(b[:loss_trace])
             isempty(trace) && continue
-            lines!(ax, 1:length(trace), trace;
+            loss0 = first(trace)
+            normalized = loss0 > 0 ? trace ./ loss0 : trace
+            lines!(ax, 1:length(normalized), normalized;
                    label=b[:label], color=get(colors, b[:label], :gray),
                    linestyle=get(styles, b[:label], :solid), linewidth=2)
         end
@@ -289,17 +295,17 @@ function plot_scaling_convergence(scaling_data, output_dir)
 
         fig = Figure(size=(900, 600))
         ax = MakieAxis(fig[1, 1];
-                  title="Loss Convergence — $ps_name ($(scaling_data[:steps]) steps)",
-                  xlabel="Step", ylabel="Loss", yscale=log10)
+                  title="Adam Convergence — $ps_name ($(scaling_data[:steps]) steps)",
+                  xlabel="Step", ylabel="Normalized Loss (loss / loss₀)")
 
-        colors = Dict("PDFT-GD (cpu)" => :blue, "PDFT-GD (gpu)" => :blue,
-                       "PDFT-Adam (cpu)" => :red, "PDFT-Adam (gpu)" => :red)
-        styles = Dict("PDFT-GD (cpu)" => :dash, "PDFT-GD (gpu)" => :solid,
-                       "PDFT-Adam (cpu)" => :dash, "PDFT-Adam (gpu)" => :solid)
+        colors = Dict("PDFT-Adam (cpu)" => :salmon, "PDFT-Adam (gpu)" => :steelblue)
+        styles = Dict("PDFT-Adam (cpu)" => :dash, "PDFT-Adam (gpu)" => :solid)
 
         for b in entries
             trace = safe_float_vec(b[:loss_trace])
             isempty(trace) && continue
+            loss0 = first(trace)
+            trace = loss0 > 0 ? trace ./ loss0 : trace
             lines!(ax, 1:length(trace), trace;
                    label=b[:label], color=get(colors, b[:label], :gray),
                    linestyle=get(styles, b[:label], :solid), linewidth=2)
@@ -359,7 +365,7 @@ function generate_markdown(profile_data, fairness_data, scaling_data)
 
     # Scaling section
     if scaling_data !== nothing
-        println(io, "## PDFT Scaling")
+        println(io, "## PDFT Adam (CPU vs GPU)")
         println(io, "")
         println(io, "| Problem | Config | ms/step | Final Loss | GPU/CPU Speedup |")
         println(io, "|---------|--------|---------|-----------|----------------|")

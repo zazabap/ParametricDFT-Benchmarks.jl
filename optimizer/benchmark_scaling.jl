@@ -120,14 +120,9 @@ function main()
             @printf("    %-20s  %7.2fs  (%5.1f ms/step)  loss=%.2f\n",
                     b["label"], b["elapsed_s"], b["time_per_step_ms"], b["final_loss"])
         end
-        # GPU/CPU speedups
-        gd_cpu = findfirst(b -> b["label"] == "PDFT-GD (cpu)", entries)
-        gd_gpu = findfirst(b -> b["label"] == "PDFT-GD (gpu)", entries)
+        # GPU/CPU speedup
         adam_cpu = findfirst(b -> b["label"] == "PDFT-Adam (cpu)", entries)
         adam_gpu = findfirst(b -> b["label"] == "PDFT-Adam (gpu)", entries)
-        if gd_cpu !== nothing && gd_gpu !== nothing
-            @printf("    GD GPU/CPU speedup: %.2fx\n", entries[gd_cpu]["elapsed_s"] / entries[gd_gpu]["elapsed_s"])
-        end
         if adam_cpu !== nothing && adam_gpu !== nothing
             @printf("    Adam GPU/CPU speedup: %.2fx\n", entries[adam_cpu]["elapsed_s"] / entries[adam_gpu]["elapsed_s"])
         end

@@ -50,10 +50,8 @@ const PROBLEM_SIZES = [
 # ============================================================================
 
 const SCALING_CONFIGS = [
-    (label="PDFT-GD (cpu)",   optimizer=:gradient_descent, device=:cpu),
-    (label="PDFT-GD (gpu)",   optimizer=:gradient_descent, device=:gpu),
-    (label="PDFT-Adam (cpu)", optimizer=:adam,              device=:cpu),
-    (label="PDFT-Adam (gpu)", optimizer=:adam,              device=:gpu),
+    (label="PDFT-Adam (cpu)", optimizer=:adam, device=:cpu),
+    (label="PDFT-Adam (gpu)", optimizer=:adam, device=:gpu),
 ]
 
 const FAIRNESS_CONFIGS = [
