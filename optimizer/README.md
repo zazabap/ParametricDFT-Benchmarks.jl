@@ -31,8 +31,9 @@ julia --project=optimizer optimizer/run_all.jl quick
 | `benchmark_fairness.jl` | PDFT (CPU/GPU) vs Manopt.jl — Riemannian GD, same data |
 | `benchmark_scaling.jl` | PDFT Adam CPU vs GPU |
 | `profile_gpu.jl` | Per-phase timing, GPU allocs/step, power/TDP |
+| `benchmark_gradient.jl` | Zygote vs OMEinsum `cost_and_gradient` for L1 loss |
 | `generate_report.jl` | Plots + markdown report from JSON results |
-| `run_all.jl` | Runs all benchmarks in sequence |
+| `run_all.jl` | Runs all benchmarks in sequence (excludes gradient) |
 
 ## Results (RTX 3090, quick preset)
 
@@ -53,6 +54,17 @@ julia --project=optimizer optimizer/run_all.jl quick
 ### Bottleneck
 
 Gradient computation accounts for ~75% of GPU step time. OMEinsum computes per-tensor gradients via 72 separate einsum contractions (~8000 GPU kernel launches/step). Each kernel operates on 2x2 matrices — too small to saturate GPU SMs. Power/TDP at 49% confirms underutilization.
+
+### Gradient Method Comparison (L1 loss)
+
+Tested whether replacing Zygote with OMEinsum's native `cost_and_gradient` helps:
+
+| Problem | Device | Zygote (ms) | Direct (ms) | Speedup | GPU allocs |
+|---------|--------|------------|------------|---------|------------|
+| 32x32 | gpu | 14.0 | 10.5 | 1.34x | 489 → 613 |
+| 256x256 | gpu | 148.1 | 154.5 | 0.96x | 1258 → 1582 |
+
+No speedup at 256x256 — both paths call the same `einsum_grad` (72 per-tensor contractions). The bottleneck is algorithmic, not AD framework overhead. Path to 20x requires batching the per-tensor backward contractions at the OMEinsum level.
 
 ## Dependencies
 
