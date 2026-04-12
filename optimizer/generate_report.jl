@@ -77,14 +77,8 @@ function plot_profile_phases(profile_data, output_dir)
 
         # Extract problem size from label (e.g. "32x32_gradient_descent_gpu" → "32x32")
         label_str = string(label)
-        # Problem size is everything before the first known optimizer keyword
-        ps_name = if startswith(label_str, "512x512")
-            "512x512"
-        elseif startswith(label_str, "32x32")
-            "32x32"
-        else
-            split(label_str, "_")[1]
-        end
+        ps_match = match(r"^(\d+x\d+)", label_str)
+        ps_name = ps_match !== nothing ? ps_match.captures[1] : split(label_str, "_")[1]
         opt_name = replace(label_str[length(ps_name)+2:end], "_" => " ", "gpu" => "GPU")
 
         group = get!(groups, ps_name, [])
@@ -130,7 +124,14 @@ function plot_profile_phases(profile_data, output_dir)
     for (i, ps_name) in enumerate(group_names)
         entries_raw = [(string(k), Float64(get(v, :wall_time_per_step_ms, get(v, :time_per_step_ms, 0.0))))
                        for (k, v) in profiles if startswith(string(k), ps_name)]
-        labels = [replace(e[1][length(ps_name)+2:end], "_" => " ", "gpu" => "GPU") for e in entries_raw]
+        labels = begin
+            out = String[]
+            for e in entries_raw
+                suffix = e[1][length(ps_name)+2:end]
+                push!(out, replace(suffix, "_" => " ", "gpu" => "GPU"))
+            end
+            out
+        end
         vals = [e[2] for e in entries_raw]
         max_t = maximum(vals)
         if max_t >= 1000
@@ -225,19 +226,19 @@ function plot_fairness_speedup(fairness_data, output_dir)
         entries = filter(b -> b[:problem] == ps_name, benchmarks)
         manopt = findfirst(b -> b[:label] == "Manopt-GD", entries)
         manopt === nothing && continue
-        manopt_time = entries[manopt][:elapsed_s]
+        manopt_ms = safe_float(entries[manopt][:time_per_step_ms])
 
         for b in entries
             b[:label] == "Manopt-GD" && continue
             push!(labels, "$(b[:label])\n$(ps_name)")
-            push!(speedups, manopt_time / b[:elapsed_s])
-            push!(colors, b[:label] == "PDFT-GD (gpu)" ? :steelblue : :salmon)
+            push!(speedups, manopt_ms / safe_float(b[:time_per_step_ms]))
+            push!(colors, occursin("gpu", b[:label]) ? :steelblue : :salmon)
         end
     end
 
     isempty(speedups) && return
     fig = Figure(size=(800, 500))
-    ax = MakieAxis(fig[1, 1]; title="Speedup vs Manopt.jl", ylabel="Speedup factor",
+    ax = MakieAxis(fig[1, 1]; title="Speedup vs Manopt.jl (per-step)", ylabel="Speedup factor",
               xticklabelrotation=π/6)
     barplot!(ax, 1:length(speedups), speedups; color=colors)
     ax.xticks = (1:length(labels), labels)
@@ -317,110 +318,116 @@ function generate_markdown(profile_data, fairness_data, scaling_data)
 
     println(io, "# Optimizer Benchmark Report")
     println(io, "")
-    println(io, "Generated: $(Dates.format(now(), "yyyy-mm-dd HH:MM"))")
-    if profile_data !== nothing
-        println(io, "GPU: $(profile_data[:gpu])")
+    date_str = Dates.format(now(), "yyyy-mm-dd HH:MM")
+    gpu_str = profile_data !== nothing ? string(profile_data[:gpu]) : "N/A"
+    preset_str = if scaling_data !== nothing
+        string(scaling_data[:preset])
+    elseif fairness_data !== nothing
+        string(fairness_data[:preset])
+    else
+        "N/A"
     end
+    println(io, "Generated: $date_str | GPU: $gpu_str | Preset: $preset_str")
     println(io, "")
-
-    # Profiling section
-    if profile_data !== nothing
-        println(io, "## GPU Profiling")
-        println(io, "")
-        println(io, "| Config | ms/step | GPU allocs/step | Mem Mgmt (%) | Forward (ms) | Gradient (ms) | Full Step (ms) |")
-        println(io, "|--------|---------|----------------|-------------|-------------|--------------|---------------|")
-        for (label, profile) in profile_data[:profiles]
-            phases = profile[:phases]
-            fwd = findfirst(p -> p[:name] == "forward_pass", phases)
-            grad = findfirst(p -> p[:name] == "gradient", phases)
-            full = findfirst(p -> p[:name] == "full_step", phases)
-            _wt(p) = Float64(get(p, :wall_time_ms, get(p, :time_ms, NaN)))
-            wall_per_step = Float64(get(profile, :wall_time_per_step_ms, get(profile, :time_per_step_ms, NaN)))
-            allocs_per_step = safe_float(get(profile, :gpu_allocs_per_step, NaN))
-            memmgmt = safe_float(get(profile, :memmgmt_pct, NaN))
-            @printf(io, "| %s | %.1f | %.0f | %.1f | %.1f | %.1f | %.1f |\n",
-                    label, wall_per_step, allocs_per_step, memmgmt,
-                    fwd !== nothing ? _wt(phases[fwd]) : NaN,
-                    grad !== nothing ? _wt(phases[grad]) : NaN,
-                    full !== nothing ? _wt(phases[full]) : NaN)
-        end
-        println(io, "")
-        if haskey(profile_data, :gpu_usage) && get(profile_data[:gpu_usage], :available, false)
-            gu = profile_data[:gpu_usage]
-            @printf(io, "GPU Utilization: %.0f%% compute | %.0f%% memory bus | Power: %.0fW / %.0fW (%.0f%%)\n\n",
-                    safe_float(gu[:mean_gpu_util]), safe_float(gu[:mean_mem_util]),
-                    safe_float(gu[:mean_power]), safe_float(gu[:power_limit_watts]),
-                    safe_float(gu[:power_utilization_pct]))
-        end
-    end
 
     # Fairness section
     if fairness_data !== nothing
-        println(io, "## PDFT vs Manopt.jl (Fair Comparison)")
+        println(io, "## PDFT vs Manopt.jl")
         println(io, "")
-        println(io, "Same algorithm (Riemannian GD), same data, same step count.")
-        println(io, "")
-        println(io, "| Problem | Config | Time (s) | Final Loss | Speedup vs Manopt |")
-        println(io, "|---------|--------|----------|-----------|-------------------|")
+        println(io, "| Problem | Config | ms/step | Final Loss | Speedup vs Manopt |")
+        println(io, "|---------|--------|---------|-----------|-------------------|")
         for ps_name in unique(b[:problem] for b in fairness_data[:benchmarks])
             entries = filter(b -> b[:problem] == ps_name, fairness_data[:benchmarks])
             manopt = findfirst(b -> b[:label] == "Manopt-GD", entries)
-            manopt_time = manopt !== nothing ? entries[manopt][:elapsed_s] : NaN
+            manopt_ms = manopt !== nothing ? safe_float(entries[manopt][:time_per_step_ms]) : NaN
             for b in entries
-                speedup = if b[:label] == "Manopt-GD"
-                    "—"
-                elseif isnan(manopt_time)
+                timing_flag = get(b, :timing_only, false) ? " *" : ""
+                speedup = if b[:label] == "Manopt-GD" || isnan(manopt_ms)
                     "—"
                 else
-                    @sprintf("%.1fx", manopt_time / b[:elapsed_s])
+                    @sprintf("%.1fx", manopt_ms / safe_float(b[:time_per_step_ms]))
                 end
-                @printf(io, "| %s | %s | %.1f | %.2f | %s |\n",
-                        ps_name, b[:label], b[:elapsed_s], b[:final_loss], speedup)
+                @printf(io, "| %s | %s%s | %.1f | %.2f | %s |\n",
+                        ps_name, b[:label], timing_flag,
+                        safe_float(b[:time_per_step_ms]), safe_float(b[:final_loss]), speedup)
             end
         end
+        println(io, "")
+        println(io, "\\* timing only ($MANOPT_TIMING_STEPS steps) — per-step extrapolation")
         println(io, "")
     end
 
     # Scaling section
     if scaling_data !== nothing
-        println(io, "## PDFT Scaling (GD/Adam × CPU/GPU)")
+        println(io, "## PDFT Scaling")
         println(io, "")
-        println(io, "| Problem | Config | Time (s) | ms/step | Final Loss | GPU/CPU Speedup |")
-        println(io, "|---------|--------|----------|---------|-----------|----------------|")
+        println(io, "| Problem | Config | ms/step | Final Loss | GPU/CPU Speedup |")
+        println(io, "|---------|--------|---------|-----------|----------------|")
         for ps_name in unique(b[:problem] for b in scaling_data[:benchmarks])
             entries = filter(b -> b[:problem] == ps_name, scaling_data[:benchmarks])
+            n_tensors = get(first(entries), :n_tensors, 0)
             for b in entries
-                # Find CPU counterpart for speedup
                 cpu_label = replace(b[:label], "gpu" => "cpu")
                 cpu_entry = findfirst(e -> e[:label] == cpu_label, entries)
                 speedup = if occursin("gpu", b[:label]) && cpu_entry !== nothing
-                    @sprintf("%.1fx", entries[cpu_entry][:elapsed_s] / b[:elapsed_s])
+                    @sprintf("%.1fx", safe_float(entries[cpu_entry][:time_per_step_ms]) / safe_float(b[:time_per_step_ms]))
                 else
                     "—"
                 end
-                @printf(io, "| %s | %s | %.1f | %.1f | %.2f | %s |\n",
-                        ps_name, b[:label], b[:elapsed_s], b[:time_per_step_ms], b[:final_loss], speedup)
+                @printf(io, "| %s | %s | %.1f | %.2f | %s |\n",
+                        ps_name, b[:label], safe_float(b[:time_per_step_ms]),
+                        safe_float(b[:final_loss]), speedup)
+            end
+            if n_tensors > 0
+                println(io, "")
+                @printf(io, "n_tensors = %d (2x2 gates in QFT circuit)\n", n_tensors)
             end
         end
         println(io, "")
     end
 
-    # Conclusion
-    println(io, "## Conclusion")
-    println(io, "")
-    if fairness_data !== nothing
-        entries = fairness_data[:benchmarks]
-        manopt_32 = findfirst(b -> b[:problem] == "32x32" && b[:label] == "Manopt-GD", entries)
-        gpu_32 = findfirst(b -> b[:problem] == "32x32" && b[:label] == "PDFT-GD (gpu)", entries)
-        if manopt_32 !== nothing && gpu_32 !== nothing
-            speedup = entries[manopt_32][:elapsed_s] / entries[gpu_32][:elapsed_s]
-            if speedup >= 20.0
-                @printf(io, "PDFT-GD GPU achieves **%.0fx speedup** over Manopt.jl on 32×32 images, exceeding the 20x target.\n", speedup)
-            else
-                @printf(io, "PDFT-GD GPU achieves **%.0fx speedup** over Manopt.jl on 32×32 images. ", speedup)
-                println(io, "The 20x target is not met at this problem size. The bottleneck is Zygote AD operating on individual 2×2 CuArrays (~65-72% of GPU time), which limits parallelism on small problems.")
-            end
+    # Profile section
+    if profile_data !== nothing
+        println(io, "## GPU Profile")
+        println(io, "")
+        println(io, "| Config | ms/step | GPU allocs/step | Mem Mgmt (%) | Power/TDP (%) |")
+        println(io, "|--------|---------|----------------|-------------|---------------|")
+
+        # Get power/TDP from gpu_usage if available
+        power_tdp = if haskey(profile_data, :gpu_usage) && get(profile_data[:gpu_usage], :available, false)
+            safe_float(profile_data[:gpu_usage][:power_utilization_pct])
+        else
+            NaN
         end
+
+        for (label, profile) in profile_data[:profiles]
+            wall_per_step = safe_float(get(profile, :wall_time_per_step_ms, get(profile, :time_per_step_ms, NaN)))
+            allocs_per_step = safe_float(get(profile, :gpu_allocs_per_step, NaN))
+            memmgmt = safe_float(get(profile, :memmgmt_pct, NaN))
+            power_str = isnan(power_tdp) ? "—" : @sprintf("%.0f", power_tdp)
+            @printf(io, "| %s | %.1f | %.0f | %.1f | %s |\n",
+                    label, wall_per_step, allocs_per_step, memmgmt, power_str)
+        end
+        println(io, "")
+
+        # Per-phase table
+        println(io, "### Per-Phase Breakdown")
+        println(io, "")
+        println(io, "| Config | Forward (ms) | Gradient (ms) | Full Step (ms) |")
+        println(io, "|--------|-------------|--------------|---------------|")
+        for (label, profile) in profile_data[:profiles]
+            phases = profile[:phases]
+            _wt(p) = Float64(get(p, :wall_time_ms, get(p, :time_ms, NaN)))
+            fwd = findfirst(p -> p[:name] == "forward_pass", phases)
+            grad = findfirst(p -> p[:name] == "gradient", phases)
+            full = findfirst(p -> p[:name] == "full_step", phases)
+            @printf(io, "| %s | %.1f | %.1f | %.1f |\n",
+                    label,
+                    fwd !== nothing ? _wt(phases[fwd]) : NaN,
+                    grad !== nothing ? _wt(phases[grad]) : NaN,
+                    full !== nothing ? _wt(phases[full]) : NaN)
+        end
+        println(io, "")
     end
 
     return String(take!(io))
