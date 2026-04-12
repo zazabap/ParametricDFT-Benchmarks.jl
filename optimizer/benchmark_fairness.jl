@@ -10,9 +10,8 @@
 
 include(joinpath(@__DIR__, "config.jl"))
 
-using Manopt, Manifolds, ManifoldDiff
+using Manopt, Manifolds
 using RecursiveArrayTools: ArrayPartition
-using ADTypes: AutoZygote
 
 # ============================================================================
 # Manopt Helpers
@@ -69,10 +68,13 @@ function run_manopt_gd(m, n, train_images, steps)
         return Float64(total / length(images))
     end
 
-    grad_f = (M_arg, p) -> ManifoldDiff.gradient(
-        M_arg, x -> f(M_arg, x), p,
-        ManifoldDiff.RiemannianProjectionBackend(AutoZygote())
-    )
+    # Compute Riemannian gradient: Euclidean gradient (Zygote) projected onto tangent space.
+    # Avoids ManifoldDiff.RiemannianProjectionBackend which requires local_metric
+    # (not implemented for Circle(ℂ) in Manifolds.jl v0.11).
+    grad_f = (M_arg, p) -> begin
+        egrad = Zygote.gradient(x -> f(M_arg, x), p)[1]
+        return project(M_arg, p, egrad)
+    end
 
     # Warmup: 1 step to trigger JIT (excluded from timing)
     Manopt.gradient_descent(M, f, grad_f, p0;
