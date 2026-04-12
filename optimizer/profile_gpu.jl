@@ -10,9 +10,6 @@
 
 include(joinpath(@__DIR__, "config.jl"))
 
-const WARMUP_STEPS = 3
-const PROFILE_STEPS = 5
-
 function profile_phase(name, fn, device)
     # Warmup
     fn()
@@ -52,14 +49,14 @@ function profile_phase(name, fn, device)
     )
 end
 
-function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
+function profile_optimizer(m, n, train_images, device, optimizer_sym, steps, n_tensors)
     loss_fn, grad_fn, opt, tensors = setup_pdft(m, n, train_images, device, optimizer_sym)
 
     # Warmup (JIT compilation)
-    println("    Warming up ($WARMUP_STEPS steps)...")
+    println("    Warming up ($PROFILE_WARMUP_STEPS steps)...")
     warmup_tensors = copy.(tensors)
     ParametricDFT.optimize!(opt, warmup_tensors, loss_fn, grad_fn;
-                             max_iter=WARMUP_STEPS, tol=1e-12)
+                             max_iter=PROFILE_WARMUP_STEPS, tol=1e-12)
     device == :gpu && CUDA.synchronize()
 
     # Per-phase breakdown
@@ -132,6 +129,7 @@ function profile_optimizer(m, n, train_images, device, optimizer_sym, steps)
         "loss_start" => isempty(loss_trace_full) ? NaN : first(loss_trace_full),
         "loss_end" => isempty(loss_trace_full) ? NaN : last(loss_trace_full),
         "gpu_memory" => gpu_mem,
+        "n_tensors" => n_tensors,
     )
 end
 
@@ -188,7 +186,7 @@ end
 
 function main()
     preset, preset_name = parse_preset()
-    steps = PROFILE_STEPS
+    steps = PROFILE_MEASUREMENT_STEPS
 
     println("=" ^ 70)
     println("  GPU Kernel Profiling (preset: $preset_name)")
@@ -207,6 +205,8 @@ function main()
     # Profile each problem size with GD and Adam on GPU
     for ps in PROBLEM_SIZES
         println("\n  Problem: $(ps.name) (m=$(ps.m), n=$(ps.n))")
+        n_tensors = length(QFTBasis(ps.m, ps.n).tensors)
+
         data = try_load_dataset(ps.dataset;
             n_train=preset.n_train, n_test=preset.n_test,
             img_size=2^ps.m)
@@ -217,7 +217,7 @@ function main()
             for device in [:cpu, :gpu]
                 label = "$(ps.name)_$(optimizer_sym)_$(device)"
                 println("  Config: $label")
-                profile = profile_optimizer(ps.m, ps.n, train_images, device, optimizer_sym, steps)
+                profile = profile_optimizer(ps.m, ps.n, train_images, device, optimizer_sym, steps, n_tensors)
                 results["profiles"][label] = profile
             end
         end
