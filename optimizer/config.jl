@@ -42,7 +42,7 @@ const OPTIMIZER_PRESETS = Dict(
 
 const PROBLEM_SIZES = [
     (name="32x32",   m=5, n=5,  dataset=:quickdraw, img_size=32),
-    (name="512x512", m=9, n=9,  dataset=:div2k,     img_size=512),
+    (name="256x256", m=8, n=8,  dataset=:div2k,     img_size=256),
 ]
 
 # ============================================================================
@@ -61,6 +61,14 @@ const FAIRNESS_CONFIGS = [
     (label="PDFT-GD (cpu)",   framework=:pdft,    device=:cpu),
     (label="PDFT-GD (gpu)",   framework=:pdft,    device=:gpu),
 ]
+
+# ============================================================================
+# Benchmark Constants
+# ============================================================================
+
+const MANOPT_TIMING_STEPS = 5
+const PROFILE_WARMUP_STEPS = 3
+const PROFILE_MEASUREMENT_STEPS = 5
 
 # ============================================================================
 # Helper Functions
@@ -146,6 +154,24 @@ function setup_pdft(m, n, train_images, device, optimizer_sym::Symbol)
         ParametricDFT.RiemannianGD(lr = 0.01)
 
     return loss_fn, grad_fn, opt, tensors
+end
+
+"""
+    measure_gpu_step_overhead(loss_fn, grad_fn, opt, tensors)
+
+Run a single optimization step wrapped in `CUDA.@timed` to measure per-step
+GPU allocation count and memory management overhead. Call after JIT warmup.
+Returns `(gpu_allocs::Int, mem_mgmt_pct::Float64)`.
+"""
+function measure_gpu_step_overhead(loss_fn, grad_fn, opt, tensors)
+    ts = copy.(tensors)
+    stats = CUDA.@timed begin
+        ParametricDFT.optimize!(opt, ts, loss_fn, grad_fn; max_iter=1, tol=1e-12)
+        CUDA.synchronize()
+    end
+    gpu_allocs = Int(stats.gpu_memstats.alloc_count)
+    mem_mgmt_pct = stats.time > 0 ? stats.gpu_memtime / stats.time * 100 : 0.0
+    return gpu_allocs, Float64(mem_mgmt_pct)
 end
 
 """Replace NaN/Inf with 0.0 for JSON serialization. Applied to scalar floats only."""
