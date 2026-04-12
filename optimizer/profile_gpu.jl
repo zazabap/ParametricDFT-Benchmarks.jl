@@ -226,7 +226,7 @@ function main()
     # GPU utilization sampling during training
     # Use the largest available problem for meaningful GPU load
     println("\n  Sampling GPU utilization during training...")
-    sample_ps = last(PROBLEM_SIZES)  # 512×512 preferred — longer steps, better sampling
+    sample_ps = last(PROBLEM_SIZES)  # Largest problem preferred — longer steps, better sampling
     sample_data = try_load_dataset(sample_ps.dataset;
         n_train=preset.n_train, n_test=preset.n_test,
         img_size=2^sample_ps.m)
@@ -246,8 +246,8 @@ function main()
         CUDA.synchronize()
 
         # Run enough steps to keep GPU busy for the full sampling window
-        # 32×32 steps are ~50ms, so need ~600 steps to fill 30s
-        # 512×512 steps are ~4s, so 10 steps = 40s
+        # Small problems (~50ms/step) need ~600 steps to fill 30s
+        # Large problems (~1-4s/step) need fewer steps
         n_usage_steps = max(steps * 4, 600)
         println("    Sampling nvidia-smi during $n_usage_steps GPU optimization steps...")
         training_task = Threads.@spawn begin
