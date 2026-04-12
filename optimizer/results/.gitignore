@@ -1,5 +1,8 @@
-# Benchmark results are generated locally, not committed
+# Large JSON data files (contain full loss traces)
 *.json
-*.png
+
+# Re-generable from JSON
 *.csv
-report.md
+
+# Logs
+*.log
