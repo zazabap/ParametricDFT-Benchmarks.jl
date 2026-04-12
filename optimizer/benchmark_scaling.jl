@@ -26,7 +26,7 @@ function run_scaling(m, n, train_images, steps, optimizer_sym, device)
         device == :gpu && CUDA.synchronize()
     end
 
-    return loss_trace, elapsed
+    return loss_trace, elapsed, (loss_fn, grad_fn, opt, tensors)
 end
 
 function main()
@@ -60,14 +60,24 @@ function main()
         data === nothing && continue
         train_images, _, _ = data
 
+        # Compute n_tensors for this problem size
+        n_tensors = length(QFTBasis(ps.m, ps.n).tensors)
+
         for cfg in SCALING_CONFIGS
             @printf("  %-20s ... ", cfg.label)
             flush(stdout)
 
             try
-                loss_trace, elapsed = run_scaling(
+                loss_trace, elapsed, setup = run_scaling(
                     ps.m, ps.n, train_images, preset.steps,
                     cfg.optimizer, cfg.device)
+
+                gpu_allocs_per_step = 0
+                mem_mgmt_pct_val = 0.0
+                if cfg.device == :gpu
+                    loss_fn, grad_fn, opt, tensors = setup
+                    gpu_allocs_per_step, mem_mgmt_pct_val = measure_gpu_step_overhead(loss_fn, grad_fn, opt, tensors)
+                end
 
                 final_loss = isempty(loss_trace) ? NaN : last(loss_trace)
                 time_per_step = elapsed / preset.steps * 1000
@@ -79,10 +89,13 @@ function main()
                     "optimizer" => string(cfg.optimizer),
                     "device" => string(cfg.device),
                     "steps" => preset.steps,
+                    "n_tensors" => n_tensors,
                     "elapsed_s" => elapsed,
                     "time_per_step_ms" => time_per_step,
                     "final_loss" => final_loss,
                     "loss_trace" => loss_trace,
+                    "gpu_allocs_per_step" => gpu_allocs_per_step,
+                    "mem_mgmt_pct" => mem_mgmt_pct_val,
                 ))
             catch e
                 msg = sprint(showerror, e)
