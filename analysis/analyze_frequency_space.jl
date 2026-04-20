@@ -31,9 +31,16 @@ const Colorbar = Makie.Colorbar
 const DATASET          = :div2k_8q
 const DATASET_CFG      = DATASET_CONFIGS[DATASET]
 const IMG_SIZE         = DATASET_CFG.img_size  # 256
-const OUTPUT_DIR       = joinpath(@__DIR__, string(DATASET))
-const ORIGINAL_INDEX   = 3                    # existing image (matches reconstruction_grid_3)
-const EXTRA_INDICES    = [6, 7, 8, 9, 10]     # 5 additional images from same seed-42 permutation
+# CLI args:
+#   ARGS[1]  variant   (optional)  e.g. "generalized" — picks results/<dataset>_<variant>/,
+#                                   writes analysis/<dataset>_<variant>/.  Empty → default.
+#   ARGS[2]  n_images  (optional)  how many DIV2K test images to analyze (default 20).
+#                                   Index 3 = reconstruction_grid_3.png (0390.png) is always
+#                                   included since it's ≤ n_images.
+const VARIANT          = length(ARGS) > 0 ? String(ARGS[1]) : ""
+const RUN_NAME         = isempty(VARIANT) ? string(DATASET) : "$(DATASET)_$(VARIANT)"
+const OUTPUT_DIR       = joinpath(@__DIR__, RUN_NAME)
+const N_IMAGES         = length(ARGS) > 1 ? parse(Int, ARGS[2]) : 20
 mkpath(OUTPUT_DIR)
 
 # ============================================================================
@@ -257,15 +264,15 @@ end
 # Main
 # ============================================================================
 
-selected = vcat([ORIGINAL_INDEX], EXTRA_INDICES)  # e.g. [3, 6, 7, 8, 9, 10]
-n_test_needed = maximum(selected)
+selected = collect(1:N_IMAGES)   # includes index 3 = reconstruction_grid_3.png
+n_test_needed = N_IMAGES
 
 println("\n[1/3] Loading DIV2K test images at $(IMG_SIZE)×$(IMG_SIZE) (n_test=$n_test_needed)...")
 _, test_images, test_labels = load_div2k_dataset(; n_train = 1,
     n_test = n_test_needed, img_size = IMG_SIZE)
 
 println("\n[2/3] Loading trained QFTBasis ...")
-qft_path = joinpath(RESULTS_DIR, string(DATASET), "trained_qft.json")
+qft_path = joinpath(RESULTS_DIR, RUN_NAME, "trained_qft.json")
 qft      = load_basis(qft_path)
 @assert image_size(qft) == (IMG_SIZE, IMG_SIZE) "Basis size $(image_size(qft)) ≠ image ($IMG_SIZE,$IMG_SIZE)"
 println("   loaded from $qft_path")
@@ -298,7 +305,7 @@ end
 consolidated_path = joinpath(OUTPUT_DIR, "summary_all_images.txt")
 open(consolidated_path, "w") do io
     println(io, "Consolidated Frequency-Space Analysis — $(length(ordered_labels)) images")
-    println(io, "Dataset: $DATASET   QFT basis: $qft_path")
+    println(io, "Run: $RUN_NAME   QFT basis: $qft_path")
     println(io, "=" ^ 100)
     println(io)
     println(io, "PSNR (dB) per image per keep-ratio:")
