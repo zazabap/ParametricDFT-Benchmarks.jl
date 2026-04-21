@@ -210,7 +210,8 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     for (j, (name, lm)) in enumerate(zip(spectrum_titles, logmags))
         local ax = Axis(fig_spec[1, j]; title = name, aspect = DataAspect())
         hidedecorations!(ax); hidespines!(ax)
-        heatmap!(ax, rotr90(lm); colormap = :inferno, colorrange = (zmin, zmax))
+        heatmap!(ax, rotr90(lm); colormap = :inferno, colorrange = (zmin, zmax),
+            rasterize = 2)
     end
     Colorbar(fig_spec[1, n_rows + 1]; colormap = :inferno, colorrange = (zmin, zmax),
         label = "log10 |·|/max", height = Relative(0.85))
@@ -219,7 +220,7 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     end
     rowsize!(fig_spec.layout, 1, CairoMakie.Fixed(cell_px))
     colgap!(fig_spec.layout, n_rows, 24)   # extra gap before the colorbar
-    save(joinpath(output_dir, "frequency_spectra.png"), fig_spec; px_per_unit = 2)
+    save(joinpath(output_dir, "frequency_spectra.pdf"), fig_spec; pt_per_unit = 1)
 
     # (A2) 3D surface view — same normalization as (A), downsampled for render.
     ds          = max(1, H ÷ 128)
@@ -238,13 +239,14 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
             xlabel = "row idx", ylabel = "col idx", zlabel = "log10 |·|/max",
             aspect = (1, 1, 0.6), azimuth = 0.65π, elevation = 0.22π)
         surface!(ax3, xs3, ys3, heights[k];
-            colormap = :inferno, colorrange = (zmin, zmax), shading = NoShading)
+            colormap = :inferno, colorrange = (zmin, zmax), shading = NoShading,
+            rasterize = 4)
         zlims!(ax3, zmin, zmax)
     end
     Colorbar(fig3d[1, n_rows + 1]; colormap = :inferno, colorrange = (zmin, zmax),
         label = "log10 |·|/max", height = Relative(0.75))
     colgap!(fig3d.layout, n_rows, 40)     # push colorbar clear of z-axis labels
-    save(joinpath(output_dir, "frequency_spectra_3d.png"), fig3d; px_per_unit = 2)
+    save(joinpath(output_dir, "frequency_spectra_3d.pdf"), fig3d; pt_per_unit = 1)
 
     # (B) Kept-coefficient masks — one row per method
     mask_cell = 260
@@ -261,7 +263,8 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
             title = i == 1 ? "$(round(Int, r * 100))% kept (k=$(per_ratio[r].k))" : ""
             local ax = Axis(fig_masks[i + 1, j]; title = title, aspect = DataAspect())
             hidedecorations!(ax); hidespines!(ax)
-            heatmap!(ax, rotr90(Float64.(mask)); colormap = :grays, colorrange = (0, 1))
+            heatmap!(ax, rotr90(Float64.(mask)); colormap = :grays, colorrange = (0, 1),
+                rasterize = 2)
         end
     end
     for j in 1:length(keep_ratios)
@@ -270,7 +273,7 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     for i in 2:(n_rows + 1)
         rowsize!(fig_masks.layout, i, CairoMakie.Fixed(mask_cell))
     end
-    save(joinpath(output_dir, "kept_coefficient_masks.png"), fig_masks; px_per_unit = 2)
+    save(joinpath(output_dir, "kept_coefficient_masks.pdf"), fig_masks; pt_per_unit = 1)
 
     # (C) Cumulative energy
     ce_fft  = cumulative_energy(mag_fft)
@@ -291,7 +294,7 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
         vlines!(ax_cum, [r]; color = :gray, linestyle = :dash, linewidth = 1)
     end
     axislegend(ax_cum; position = :rb)
-    save(joinpath(output_dir, "cumulative_energy.png"), fig_cum; px_per_unit = 2)
+    save(joinpath(output_dir, "cumulative_energy.pdf"), fig_cum; pt_per_unit = 1)
 
     # (D) Reconstructions
     rec_cell = 260
@@ -310,7 +313,8 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
                 round(Int, r * 100), met.psnr, met.ssim)
             local ax = Axis(fig_rec[i + 1, j]; title = title, aspect = DataAspect())
             hidedecorations!(ax); hidespines!(ax)
-            heatmap!(ax, rotr90(clamp.(rec, 0.0, 1.0)); colormap = :grays, colorrange = (0, 1))
+            heatmap!(ax, rotr90(clamp.(rec, 0.0, 1.0)); colormap = :grays, colorrange = (0, 1),
+                rasterize = 2)
         end
     end
     for j in 1:length(keep_ratios)
@@ -319,7 +323,7 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     for i in 2:(n_rows + 1)
         rowsize!(fig_rec.layout, i, CairoMakie.Fixed(rec_cell))
     end
-    save(joinpath(output_dir, "reconstructions.png"), fig_rec; px_per_unit = 2)
+    save(joinpath(output_dir, "reconstructions.pdf"), fig_rec; pt_per_unit = 1)
 
     # Summary
     open(joinpath(output_dir, "summary.txt"), "w") do io
