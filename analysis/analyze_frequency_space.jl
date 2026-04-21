@@ -188,62 +188,62 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     row_labels = ["Classical FFT", "Classical DCT", "Block DCT (8×8)", "QFT"]
     n_rows     = length(row_labels)   # 4
 
-    # (A) Frequency spectra — one column per method
+    # Common magnitude normalization used by both the 2D and 3D spectrum
+    # figures: divide each spectrum by its own maximum, then take log10 with
+    # a fixed floor. Every method's peak sits at 0 and the shared noise
+    # floor makes the four panels — and the two figures — directly comparable.
+    norm_mag(m) = m ./ max(maximum(m), eps())
+    mags_norm   = (norm_mag(mag_fft), norm_mag(mag_dct),
+                   norm_mag(mag_bdct), norm_mag(mag_qft))
+    logmags     = map(m -> log10.(m .+ 1e-6), mags_norm)
+    zmin        = minimum(minimum.(logmags))
+    zmax        = 0.0                   # log10(1) = 0 — same peak for every method
+    spectrum_titles = ("Classical FFT (DC centered)", "Classical DCT (DC top-left)",
+                       "Block DCT 8×8 (per-block DC)", "QFT (trained)")
+
+    # (A) 2D frequency spectra — one column per method, shared colorbar on right
     cell_px = 320
-    fig_spec = Figure(size = (n_rows * cell_px + 140, cell_px + 140); figure_padding = 12)
-    Label(fig_spec[0, 1:n_rows], "Frequency-domain magnitude (log10) — $label";
+    fig_spec = Figure(size = (n_rows * cell_px + 220, cell_px + 160); figure_padding = 12)
+    Label(fig_spec[0, 1:n_rows],
+        "Frequency-domain magnitude (log10 of peak-normalized |coef|) — $label";
         fontsize = 16, font = :bold)
-    for (j, (name, mag)) in enumerate([
-        ("Classical FFT (DC centered)", mag_fft),
-        ("Classical DCT (DC top-left)", mag_dct),
-        ("Block DCT 8×8 (per-block DC)", mag_bdct),
-        ("QFT (trained)",               mag_qft),
-    ])
+    for (j, (name, lm)) in enumerate(zip(spectrum_titles, logmags))
         local ax = Axis(fig_spec[1, j]; title = name, aspect = DataAspect())
         hidedecorations!(ax); hidespines!(ax)
-        hm = heatmap!(ax, rotr90(log_mag(mag)); colormap = :inferno)
-        Colorbar(fig_spec[2, j], hm; vertical = false, flipaxis = false, height = 10)
+        heatmap!(ax, rotr90(lm); colormap = :inferno, colorrange = (zmin, zmax))
     end
+    Colorbar(fig_spec[1, n_rows + 1]; colormap = :inferno, colorrange = (zmin, zmax),
+        label = "log10 |·|/max", height = Relative(0.85))
     for j in 1:n_rows
         colsize!(fig_spec.layout, j, CairoMakie.Fixed(cell_px))
     end
     rowsize!(fig_spec.layout, 1, CairoMakie.Fixed(cell_px))
+    colgap!(fig_spec.layout, n_rows, 24)   # extra gap before the colorbar
     save(joinpath(output_dir, "frequency_spectra.png"), fig_spec; px_per_unit = 2)
 
-    # (A2) 3D surface view — magnitudes normalized per-method so all four are
-    # on a common scale. Each spectrum is divided by its own max, then log10'd,
-    # so the peak sits at z = 0 for every method and the shared floor reveals
-    # how fast the tail decays. All four axes use the same zlim and colorrange.
-    norm_mag(m) = m ./ max(maximum(m), eps())
-    mags_norm   = (norm_mag(mag_fft), norm_mag(mag_dct),
-                   norm_mag(mag_bdct), norm_mag(mag_qft))
-    ds          = max(1, H ÷ 128)       # downsample large grids for surface render
+    # (A2) 3D surface view — same normalization as (A), downsampled for render.
+    ds          = max(1, H ÷ 128)
     subsample(M) = M[1:ds:end, 1:ds:end]
-    heights     = map(m -> log10.(subsample(m) .+ 1e-6), mags_norm)
-    zmin        = minimum(minimum.(heights))
-    zmax        = 0.0                   # log10(1) = 0 — same peak for every method
+    heights     = map(subsample, logmags)
     xs3         = collect(1:ds:H)
     ys3         = collect(1:ds:W)
 
-    cell3d = 460
-    fig3d  = Figure(size = (2 * cell3d + 120, 2 * cell3d + 120); figure_padding = 12)
-    Label(fig3d[0, 1:2],
+    cell3d = 440
+    fig3d  = Figure(size = (n_rows * cell3d + 260, cell3d + 160); figure_padding = 12)
+    Label(fig3d[0, 1:n_rows],
         "3D frequency-domain magnitude (log10 of peak-normalized |coef|) — $label";
         fontsize = 16, font = :bold)
-    titles_3d = ("Classical FFT (DC centered)", "Classical DCT (DC top-left)",
-                 "Block DCT 8×8 (per-block DC)", "QFT (trained)")
-    positions = ((1, 1), (1, 2), (2, 1), (2, 2))
-    for k in 1:4
-        (rr, cc) = positions[k]
-        local ax3 = Axis3(fig3d[rr, cc]; title = titles_3d[k],
+    for k in 1:n_rows
+        local ax3 = Axis3(fig3d[1, k]; title = spectrum_titles[k],
             xlabel = "row idx", ylabel = "col idx", zlabel = "log10 |·|/max",
             aspect = (1, 1, 0.6), azimuth = 0.65π, elevation = 0.22π)
         surface!(ax3, xs3, ys3, heights[k];
             colormap = :inferno, colorrange = (zmin, zmax), shading = NoShading)
         zlims!(ax3, zmin, zmax)
     end
-    Colorbar(fig3d[1:2, 3]; colormap = :inferno, colorrange = (zmin, zmax),
-        label = "log10 |·|/max", height = Relative(0.7))
+    Colorbar(fig3d[1, n_rows + 1]; colormap = :inferno, colorrange = (zmin, zmax),
+        label = "log10 |·|/max", height = Relative(0.75))
+    colgap!(fig3d.layout, n_rows, 40)     # push colorbar clear of z-axis labels
     save(joinpath(output_dir, "frequency_spectra_3d.png"), fig3d; px_per_unit = 2)
 
     # (B) Kept-coefficient masks — one row per method
