@@ -252,16 +252,18 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     # so that every image cell gets the full `mask_cell` square (no Axis title
     # eating into the image area).
     # Grid layout:
-    #   row 0          : main title (spans all ratio columns)
-    #   row 1          : per-ratio labels ("X% kept (k=...)")
+    #   row 0          : main title (spans all ratio columns) — Fixed height
+    #   row 1          : per-ratio labels ("X% kept (k=...)")  — Fixed height
     #   rows 2..(n+1)  : image axes, one row per method
     #   col 0          : per-method label (rotated)
     #   cols 1..nratio : image axes
-    mask_cell = 260
-    title_row_h = 40           # space for per-ratio header
-    main_row_h  = 40           # space for main title
+    mask_cell    = 260
+    title_row_h  = 40
+    main_row_h   = 64
+    bottom_pad   = 56          # slack so the bottom row never clips the PDF edge
     fig_masks = Figure(size = (length(keep_ratios) * mask_cell + 160,
-                                n_rows * mask_cell + title_row_h + main_row_h + 40);
+                                n_rows * mask_cell + title_row_h
+                                + main_row_h + bottom_pad);
                         figure_padding = 12)
     Label(fig_masks[0, 1:length(keep_ratios)],
         "Kept coefficients (white = kept) — top-k by |coefficient| — $label";
@@ -282,10 +284,11 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
                 rasterize = 2)
         end
     end
+    rowsize!(fig_masks.layout, 0, CairoMakie.Fixed(main_row_h))
+    rowsize!(fig_masks.layout, 1, CairoMakie.Fixed(title_row_h))
     for j in 1:length(keep_ratios)
         colsize!(fig_masks.layout, j, CairoMakie.Fixed(mask_cell))
     end
-    rowsize!(fig_masks.layout, 1, CairoMakie.Fixed(title_row_h))
     for i in 2:(n_rows + 1)
         rowsize!(fig_masks.layout, i, CairoMakie.Fixed(mask_cell))
     end
@@ -317,23 +320,29 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     # `rec_cell` square. Previously the title lived inside the Axis and
     # shrank the plotted image relative to the fixed cell size.
     # Grid layout (n_rows = 4):
-    #   row 0                : main title
+    #   row 0                : main title (auto height)
     #   rows 1, 3, 5, 7      : per-cell title labels (method m title row = 2m-1)
-    #   rows 2, 4, 6, 8      : image axes (method m image row = 2m)
-    #   col 0                : rotated method label (spans title + image rows)
-    rec_cell    = 260
-    cell_title_h = 28          # vertical space reserved for each PSNR/SSIM label
-    main_row_h   = 40
+    #   rows 2, 4, 6, 8      : image axes              (method m image row = 2m)
+    #   col 0                : rotated method label (spans the method's two rows)
+    #
+    # Figure height budget:
+    #   main title (~60 px) + n_rows * (cell_title_h + rec_cell) + padding + slack
+    # Allow a generous bottom margin so the QFT row can't clip off the PDF edge.
+    rec_cell     = 260
+    cell_title_h = 28
+    main_row_h   = 64          # reserved space for the main figure title
+    bottom_pad   = 56          # slack so the last image row is fully inside the PDF
     fig_rec = Figure(size = (length(keep_ratios) * rec_cell + 160,
-                              n_rows * (rec_cell + cell_title_h) + main_row_h + 40);
+                              n_rows * (rec_cell + cell_title_h)
+                              + main_row_h + bottom_pad);
                      figure_padding = 12)
     Label(fig_rec[0, 1:length(keep_ratios)],
         "Reconstructions at each keep-ratio — $label"; fontsize = 16, font = :bold)
     rec_keys = [(:rec_fft, :met_fft), (:rec_dct, :met_dct),
                 (:rec_bdct, :met_bdct), (:rec_qft, :met_qft)]
     for (i, (rl, (reckey, metkey))) in enumerate(zip(row_labels, rec_keys))
-        title_row = 2 * i - 1 + 1   # +1 shifts past the main-title row 0 → rows 2, 4, 6, 8
-        image_row = title_row + 1   # rows 3, 5, 7, 9
+        title_row = 2 * i - 1    # rows 1, 3, 5, 7 — no empty row between main title and body
+        image_row = 2 * i        # rows 2, 4, 6, 8
         Label(fig_rec[title_row:image_row, 0], rl; rotation = π / 2,
             fontsize = 13, font = :bold)
         for (j, r) in enumerate(keep_ratios)
@@ -348,12 +357,13 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
                 rasterize = 2)
         end
     end
+    rowsize!(fig_rec.layout, 0, CairoMakie.Fixed(main_row_h))   # pin main title height
     for j in 1:length(keep_ratios)
         colsize!(fig_rec.layout, j, CairoMakie.Fixed(rec_cell))
     end
     for i in 1:n_rows
-        rowsize!(fig_rec.layout, 2 * i - 1 + 1, CairoMakie.Fixed(cell_title_h))  # title rows
-        rowsize!(fig_rec.layout, 2 * i + 1,     CairoMakie.Fixed(rec_cell))       # image rows
+        rowsize!(fig_rec.layout, 2 * i - 1, CairoMakie.Fixed(cell_title_h))  # per-cell title rows
+        rowsize!(fig_rec.layout, 2 * i,     CairoMakie.Fixed(rec_cell))       # image rows
     end
     save(joinpath(output_dir, "reconstructions.pdf"), fig_rec; pt_per_unit = 1)
 
