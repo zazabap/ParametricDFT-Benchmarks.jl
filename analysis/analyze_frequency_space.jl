@@ -258,9 +258,9 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     #   col 0          : per-method label (rotated)
     #   cols 1..nratio : image axes
     mask_cell    = 260
-    title_row_h  = 40
-    main_row_h   = 64
-    bottom_pad   = 56          # slack so the bottom row never clips the PDF edge
+    title_row_h  = 48          # per-ratio header row height (with Label padding)
+    main_row_h   = 96          # reserved space for the main figure title (incl. margins)
+    bottom_pad   = 96          # generous slack so the bottom row never clips the PDF edge
     fig_masks = Figure(size = (length(keep_ratios) * mask_cell + 160,
                                 n_rows * mask_cell + title_row_h
                                 + main_row_h + bottom_pad);
@@ -329,9 +329,9 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     #   main title (~60 px) + n_rows * (cell_title_h + rec_cell) + padding + slack
     # Allow a generous bottom margin so the QFT row can't clip off the PDF edge.
     rec_cell     = 260
-    cell_title_h = 28
-    main_row_h   = 64          # reserved space for the main figure title
-    bottom_pad   = 56          # slack so the last image row is fully inside the PDF
+    cell_title_h = 36          # per-cell PSNR/SSIM caption height (with Label padding)
+    main_row_h   = 96          # reserved space for the main figure title (incl. margins)
+    bottom_pad   = 96          # generous slack so the last image row never clips the PDF edge
     fig_rec = Figure(size = (length(keep_ratios) * rec_cell + 160,
                               n_rows * (rec_cell + cell_title_h)
                               + main_row_h + bottom_pad);
