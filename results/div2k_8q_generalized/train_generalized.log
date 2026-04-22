@@ -1,0 +1,112 @@
+Script started on 2026-04-19 15:59:27+00:00 [<not executed on terminal>]
+================================================================================
+Benchmark: div2k_8q | MSELoss(k=6554) | Preset: generalized
+Image size: 256x256 | Qubits: m=8, n=8
+n_train=128  batch_size=64  epochs=6  steps_per_image=2
+================================================================================
+
+Step 1: Loading DIV2K dataset (resized to 256x256)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mDIV2K dataset ready
+[36m[1m│ [22m[39m  n_train = 128
+[36m[1m│ [22m[39m  n_test = 50
+[36m[1m└ [22m[39m  img_size = 256
+
+--- Training QFTBasis ---
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mLoaded cached einsum code
+[36m[1m└ [22m[39m  key = "e1e4133121f5"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mLoaded cached einsum code
+[36m[1m└ [22m[39m  key = "da671cce5fce"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mLoaded cached einsum code
+[36m[1m└ [22m[39m  key = "3432b09794f7"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mLoaded cached einsum code
+[36m[1m└ [22m[39m  key = "d4801e951872"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mSaved trained qft
+[36m[1m│ [22m[39m  path = "/home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized/trained_qft.json"
+[36m[1m└ [22m[39m  time = 8368.6
+
+--- Training EntangledQFTBasis ---
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "94248f20858c"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "7a2ad5e072c2"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "f87140f5639e"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "b64105ea6e3f"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mSaved trained entangled_qft
+[36m[1m│ [22m[39m  path = "/home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized/trained_entangled_qft.json"
+[36m[1m└ [22m[39m  time = 4773.2
+
+--- Training TEBDBasis ---
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "bda556e4c4c9"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "4b6b8daf0807"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "be60b0b597ab"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "2c17dd9f3e76"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mSaved trained tebd
+[36m[1m│ [22m[39m  path = "/home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized/trained_tebd.json"
+[36m[1m└ [22m[39m  time = 13525.6
+
+--- Training MERABasis ---
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "e5b899522ec8"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "6ce9c386efa1"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "8c250a155920"
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mOptimizing einsum contraction (this may take a few minutes for large circuits)...
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mCached einsum code
+[36m[1m└ [22m[39m  key = "f65c3eb5c42a"
+[36m[1m┌ [22m[39m[36m[1mInfo: [22m[39mSaved trained mera
+[36m[1m│ [22m[39m  path = "/home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized/trained_mera.json"
+[36m[1m└ [22m[39m  time = 11389.3
+
+--- FFT Baseline ---
+
+--- DCT Baseline ---
+[36m[1m[ [22m[39m[36m[1mInfo: [22m[39mResults saved to /home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized/metrics.json
+
+====================================================================================================
+COMPRESSION QUALITY COMPARISON
+====================================================================================================
+
+PSNR (dB) — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept |   Train time
+----------------------------------------------------------------------------------------------------
+dct                       |      22.74 |      24.38 |      25.69 |      26.88 |        2.7s
+entangled_qft             |      22.72 |      24.79 |      26.50 |      28.07 |     4773.2s
+fft                       |      22.08 |      23.51 |      24.60 |      25.56 |        4.4s
+mera                      |      22.58 |      24.57 |      26.20 |      27.72 |    11389.3s
+qft                       |      22.86 |      25.03 |      26.82 |      28.47 |     8368.6s
+tebd                      |      22.72 |      24.79 |      26.50 |      28.07 |    13525.6s
+
+SSIM — higher is better:
+----------------------------------------------------------------------------------------------------
+Basis                     |   5%% kept |  10%% kept |  15%% kept |  20%% kept
+----------------------------------------------------------------------------------------------------
+dct                       |     0.6095 |     0.6940 |     0.7463 |     0.7850
+entangled_qft             |     0.6393 |     0.7407 |     0.8019 |     0.8452
+fft                       |     0.5711 |     0.6565 |     0.7079 |     0.7462
+mera                      |     0.6307 |     0.7311 |     0.7918 |     0.8354
+qft                       |     0.6448 |     0.7481 |     0.8099 |     0.8531
+tebd                      |     0.6393 |     0.7407 |     0.8019 |     0.8452
+====================================================================================================
+
+Benchmark complete. Results saved to: /home/claude-user/ParametricDFT-Benchmarks.jl/results/div2k_8q_generalized
+
+Script done on 2026-04-20 02:36:20+00:00 [COMMAND_EXIT_CODE="0"]

@@ -58,6 +58,20 @@ const TRAINING_PRESETS = Dict(
         device = :gpu,
         batch_size = 16,
     ),
+    # Larger batch + more training images for better cross-image generalization.
+    # steps_per_image is lower because the per-batch iter count scales as
+    # steps_per_image * batch_size in _train_basis_core.
+    :generalized => (
+        epochs = 6,
+        steps_per_image = 2,
+        n_train = 128,
+        n_test = 50,
+        patience = 3,
+        optimizer = :adam,
+        validation_split = 0.15,
+        device = :gpu,
+        batch_size = 64,
+    ),
 )
 
 # ============================================================================
