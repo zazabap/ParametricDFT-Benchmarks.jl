@@ -328,16 +328,14 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
     # Figure height budget:
     #   main title (~60 px) + n_rows * (cell_title_h + rec_cell) + padding + slack
     # Allow a generous bottom margin so the QFT row can't clip off the PDF edge.
+    # Publication-tight layout: compact title band, bold captions, and just enough
+    # bottom slack that the QFT row never clips.
     rec_cell     = 260
-    cell_title_h = 36          # per-cell PSNR/SSIM caption height (with Label padding)
-    main_row_h   = 96          # reserved space for the main figure title (incl. margins)
-    bottom_pad   = 96          # generous slack so the last image row never clips the PDF edge
+    cell_title_h = 30          # per-cell PSNR/SSIM caption height (bold, tight)
+    bottom_pad   = 30          # slack below the last image row
     fig_rec = Figure(size = (length(keep_ratios) * rec_cell + 160,
-                              n_rows * (rec_cell + cell_title_h)
-                              + main_row_h + bottom_pad);
+                              n_rows * (rec_cell + cell_title_h) + bottom_pad);
                      figure_padding = 12)
-    Label(fig_rec[0, 1:length(keep_ratios)],
-        "Reconstructions at each keep-ratio — $label"; fontsize = 16, font = :bold)
     rec_keys = [(:rec_fft, :met_fft), (:rec_dct, :met_dct),
                 (:rec_bdct, :met_bdct), (:rec_qft, :met_qft)]
     for (i, (rl, (reckey, metkey))) in enumerate(zip(row_labels, rec_keys))
@@ -350,20 +348,30 @@ function analyze_image(img::AbstractMatrix, label::AbstractString, qft;
             met = per_ratio[r][metkey]
             caption = @sprintf("%d%% kept — PSNR %.2f dB, SSIM %.3f",
                 round(Int, r * 100), met.psnr, met.ssim)
-            Label(fig_rec[title_row, j], caption; fontsize = 10)
+            Label(fig_rec[title_row, j], caption; fontsize = 10, font = :bold)
             local ax = Axis(fig_rec[image_row, j]; aspect = DataAspect())
             hidedecorations!(ax); hidespines!(ax)
             heatmap!(ax, rotr90(clamp.(rec, 0.0, 1.0)); colormap = :grays, colorrange = (0, 1),
                 rasterize = 2)
         end
     end
-    rowsize!(fig_rec.layout, 0, CairoMakie.Fixed(main_row_h))   # pin main title height
+    colsize!(fig_rec.layout, 0, CairoMakie.Fixed(24))           # narrow left-label column
     for j in 1:length(keep_ratios)
         colsize!(fig_rec.layout, j, CairoMakie.Fixed(rec_cell))
     end
+    colgap!(fig_rec.layout, 1, 4)                                # rotated label → first image (close)
     for i in 1:n_rows
         rowsize!(fig_rec.layout, 2 * i - 1, CairoMakie.Fixed(cell_title_h))  # per-cell title rows
         rowsize!(fig_rec.layout, 2 * i,     CairoMakie.Fixed(rec_cell))       # image rows
+    end
+    # Tight vertical spacing: each caption sits flush on its image, and methods
+    # are separated by a thin break. With the main title removed, rows are
+    # caption1/image1/caption2/image2/... — gap k is between slot k and k+1.
+    for i in 1:n_rows
+        rowgap!(fig_rec.layout, 2 * i - 1, 0)    # caption i → image i (flush)
+        if i < n_rows
+            rowgap!(fig_rec.layout, 2 * i, 6)    # image i → caption i+1 (thin break)
+        end
     end
     save(joinpath(output_dir, "reconstructions.pdf"), fig_rec; pt_per_unit = 1)
 
