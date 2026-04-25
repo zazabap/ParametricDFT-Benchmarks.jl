@@ -22,7 +22,7 @@ const K_KEEP         = round(Int, 2^(DATASET_CONFIG.m + DATASET_CONFIG.n) * 0.10
 println("=" ^ 80)
 println("Benchmark: $(DATASET_NAME) | MSELoss(k=$K_KEEP) | Preset: $PRESET_NAME")
 println("Image size: $(DATASET_CONFIG.img_size)x$(DATASET_CONFIG.img_size) | Qubits: m=$(DATASET_CONFIG.m), n=$(DATASET_CONFIG.n)")
-println("n_train=$(preset.n_train)  batch_size=$(preset.batch_size)  epochs=$(preset.epochs)  steps_per_image=$(preset.steps_per_image)")
+println("n_train=$(preset.n_train)  batch_size=$(preset.batch_size)  epochs=$(preset.epochs)  lr_peak=$(preset.lr_peak)")
 println("=" ^ 80)
 
 # Load dataset

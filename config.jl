@@ -14,9 +14,14 @@ using Random
 # ============================================================================
 
 const TRAINING_PRESETS = Dict(
+    # Training schedule knobs (replacing the old steps_per_image inner-loop
+    # count) live inline so runners can forward them into train_basis:
+    #   warmup_frac    — fraction of total steps used for linear LR warmup
+    #   lr_peak        — peak learning rate after warmup
+    #   lr_final       — final learning rate at end of cosine decay
+    #   max_grad_norm  — optional gradient-clipping threshold (Float64 or nothing)
     :smoke => (
         epochs = 2,
-        steps_per_image = 10,
         n_train = 5,
         n_test = 2,
         patience = 2,
@@ -24,10 +29,13 @@ const TRAINING_PRESETS = Dict(
         validation_split = 0.2,
         device = :gpu,
         batch_size = 16,
+        max_grad_norm  = 1.0,
+        warmup_frac    = 0.05,
+        lr_peak        = 0.01,
+        lr_final       = 0.001,
     ),
     :light => (
         epochs = 5,
-        steps_per_image = 10,
         n_train = 10,
         n_test = 20,
         patience = 5,
@@ -35,10 +43,13 @@ const TRAINING_PRESETS = Dict(
         validation_split = 0.2,
         device = :gpu,
         batch_size = 8,
+        max_grad_norm  = 1.0,
+        warmup_frac    = 0.05,
+        lr_peak        = 0.01,
+        lr_final       = 0.001,
     ),
     :moderate => (
         epochs = 10,
-        steps_per_image = 15,
         n_train = 20,
         n_test = 50,
         patience = 10,
@@ -46,10 +57,13 @@ const TRAINING_PRESETS = Dict(
         validation_split = 0.2,
         device = :gpu,
         batch_size = 16,
+        max_grad_norm  = 1.0,
+        warmup_frac    = 0.05,
+        lr_peak        = 0.01,
+        lr_final       = 0.001,
     ),
     :heavy => (
         epochs = 20,
-        steps_per_image = 30,
         n_train = 50,
         n_test = 100,
         patience = 10,
@@ -57,20 +71,27 @@ const TRAINING_PRESETS = Dict(
         validation_split = 0.2,
         device = :gpu,
         batch_size = 16,
+        max_grad_norm  = 1.0,
+        warmup_frac    = 0.05,
+        lr_peak        = 0.01,
+        lr_final       = 0.001,
     ),
-    # Larger batch + more training images for better cross-image generalization.
-    # steps_per_image is lower because the per-batch iter count scales as
-    # steps_per_image * batch_size in _train_basis_core.
+    # Generalised preset used by run_div2k_8q_generalized.jl for the paper rerun.
+    # Step budget: 20 epochs × ceil(425 / 16) = 20 × 27 = 540 optimizer steps
+    # per basis — enough for the cosine schedule to decay meaningfully.
     :generalized => (
-        epochs = 6,
-        steps_per_image = 2,
-        n_train = 128,
+        epochs = 20,
+        n_train = 500,
         n_test = 50,
-        patience = 3,
+        patience = 5,
         optimizer = :adam,
         validation_split = 0.15,
         device = :gpu,
-        batch_size = 64,
+        batch_size = 16,
+        max_grad_norm  = 1.0,
+        warmup_frac    = 0.05,
+        lr_peak        = 0.003,
+        lr_final       = 0.0003,
     ),
 )
 

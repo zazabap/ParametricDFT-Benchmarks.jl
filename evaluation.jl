@@ -47,13 +47,24 @@ so we pass `ratio = 1.0 - keep_ratio`.
 function evaluate_basis(basis, test_images::Vector{<:AbstractMatrix}, keep_ratios::Vector{Float64})
     results = Dict{Float64,NamedTuple}()
 
+    # Round-trip the basis through save/load: serialization normalises tensors
+    # to CPU-resident `Matrix{ComplexF64}` and rebuilds the einsum codes. This
+    # sidesteps the "Scalar indexing disallowed on GPU" path that `compress`
+    # / `recover` hit when the trained basis's tensors are still CuArrays.
+    tmp = tempname() * ".json"
+    save_basis(tmp, basis)
+    cpu_basis = load_basis(tmp)
+    try rm(tmp) catch; end
+
+    cpu_test = [Matrix{Float64}(img) for img in test_images]
+
     for keep_ratio in keep_ratios
         discard_ratio = 1.0 - keep_ratio
         mse_vals, psnr_vals, ssim_vals = Float64[], Float64[], Float64[]
 
-        for img in test_images
-            compressed = compress(basis, img; ratio = discard_ratio)
-            recovered = recover(basis, compressed)
+        for img in cpu_test
+            compressed = compress(cpu_basis, img; ratio = discard_ratio)
+            recovered = recover(cpu_basis, compressed)
             metrics = compute_metrics(img, recovered)
             push!(mse_vals, metrics.mse)
             push!(psnr_vals, metrics.psnr)
@@ -198,12 +209,15 @@ function train_and_time(
             m = m, n = n,
             loss = loss,
             epochs = preset.epochs,
-            steps_per_image = preset.steps_per_image,
             validation_split = preset.validation_split,
             early_stopping_patience = preset.patience,
             optimizer = preset.optimizer,
             device = preset.device,
             batch_size = get(preset, :batch_size, 1),
+            warmup_frac    = get(preset, :warmup_frac, 0.05),
+            lr_peak        = get(preset, :lr_peak,     0.01),
+            lr_final       = get(preset, :lr_final,    0.001),
+            max_grad_norm  = get(preset, :max_grad_norm, nothing),
             save_loss_path = save_loss_path,
         )
     end
